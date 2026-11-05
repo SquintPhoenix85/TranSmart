@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Transit coverage map</title>
+    <link rel="stylesheet" href="leaflet/leaflet.css">
+    <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            background: #e5e7eb;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        .legend, .tile-status {
+            position: absolute;
+            z-index: 1000;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.96);
+            color: #1f2937;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
+            font-size: 12px;
+        }
+
+        .legend {
+            top: 12px;
+            right: 12px;
+            line-height: 1.8;
+        }
+
+        .tile-status {
+            bottom: 24px;
+            left: 12px;
+            max-width: min(440px, calc(100vw - 48px));
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border: 1px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px #6b7280;
+        }
+
+        .selected-dot { background: #2563eb; }
+        .covered-dot { background: #16a34a; }
+        .uncovered-dot { background: #dc2626; }
+    </style>
+</head>
+<body>
+    <div id="map" aria-label="Map of graph vertices and selected transit coverage sites"></div>
+    <div class="legend" aria-label="Map legend">
+        <div class="legend-item"><span class="legend-dot selected-dot"></span>Selected site</div>
+        <div class="legend-item"><span class="legend-dot covered-dot"></span>Covered vertex</div>
+        <div class="legend-item"><span class="legend-dot uncovered-dot"></span>Uncovered vertex</div>
+    </div>
+    <div id="tile-status" class="tile-status" role="status">Loading OpenStreetMap tiles...</div>
+
+    <script src="leaflet/leaflet.js"></script>
+    <script>
+        (() => {
+            const tileStatus = document.getElementById("tile-status");
+            const postStatus = message => {
+                if (window.chrome && window.chrome.webview) {
+                    window.chrome.webview.postMessage(message);
+                }
+            };
+
+            const setTileStatus = message => {
+                tileStatus.textContent = message;
+            };
+
+            try {
+                const map = L.map("map").setView([11.01, -74.82], 13);
+                const resultLayer = L.layerGroup().addTo(map);
+                const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                    maxZoom: 19,
+                    attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap contributors</a>"
+                }).addTo(map);
+                let tileResponseReceived = false;
+                let tileErrorReceived = false;
+
+                tiles.on("tileload", () => {
+                    tileResponseReceived = true;
+                    if (!tileErrorReceived) {
+                        setTileStatus("OpenStreetMap basemap loaded.");
+                    }
+                });
+                tiles.on("tileerror", () => {
+                    tileResponseReceived = true;
+                    tileErrorReceived = true;
+                    const message = "OpenStreetMap tiles are unavailable. Check your internet connection; optimization still works offline.";
+                    setTileStatus(message);
+                    postStatus("tile-error");
+                });
+
+                window.setTimeout(() => {
+                    if (!tileResponseReceived) {
+                        const message = "No OpenStreetMap tiles received. Check your internet connection; optimization still works offline.";
+                        setTileStatus(message);
+                        postStatus("tile-error");
+                    }
+                }, 10000);
+
+                window.chrome.webview.addEventListener("message", event => {
+                    const message = event.data;
+                    if (message.type !== "results" || !Array.isArray(message.nodes)) {
+                        return;
+                    }
+
+                    resultLayer.clearLayers();
+                    const bounds = [];
+                    for (const point of message.nodes) {
+                        const selected = point.selected === true;
+                        const covered = point.covered === true;
+                        const color = selected ? "#2563eb" : covered ? "#16a34a" : "#dc2626";
+                        const label = selected ? "Selected site" : covered ? "Covered vertex" : "Uncovered vertex";
+                        const popup = document.createElement("div");
+                        const title = document.createElement("strong");
+                        const nodeId = document.createElement("div");
+                        title.textContent = label;
+                        nodeId.textContent = `Node ID: ${point.id}`;
+                        popup.append(title, nodeId);
+
+                        L.circleMarker([point.lat, point.lon], {
+                            radius: selected ? 8 : 5,
+                            color,
+                            weight: selected ? 2 : 1,
+                            fillColor: color,
+                            fillOpacity: 0.86
+                        }).bindPopup(popup).addTo(resultLayer);
+                        bounds.push([point.lat, point.lon]);
+                    }
+
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, { padding: [24, 24], maxZoom: 16 });
+                    }
+                });
+
+                postStatus("ready");
+            } catch (error) {
+                const message = `Map initialization failed: ${error.message}. Optimization remains available.`;
+                setTileStatus(message);
+                postStatus("map-error");
+            }
+        })();
+    </script>
+</body>
+</html>

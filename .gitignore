@@ -1,0 +1,84 @@
+# ==========================================
+# Python & Virtual Environments
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+
+# ==========================================
+# C# / .NET / WPF (Applies to TranSmart/)
+# ==========================================
+bin/
+obj/
+out/
+[Dd]ebug/
+[Rr]elease/
+[B-b]uild/
+*.user
+*.userosv
+*.userprefs
+*.suo
+*.cache
+*.clr
+*.sln.docstates
+*.VisualState.xml
+
+# ==========================================
+# JetBrains Rider
+# ==========================================
+.idea/
+*.sln.iml
+
+# ==========================================
+# Visual Studio Code
+# ==========================================
+.vscode/
+
+# ==========================================
+# OpenStreetMap Data & Local Caches
+# ==========================================
+*.osm
+*.pbf
+*.osm.pbf
+*.geojson
+*.gpkg
+*.geopackage
+*.sqlite
+*.sqlite3
+*.db
+.cache/
+data_cache/
+
+# ==========================================
+# Environment Variables & OS Files
+# ==========================================
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
