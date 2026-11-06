@@ -11,7 +11,7 @@
 * **Target Population:** University students (Uninorte community) and commuters along the Northern Corridor (Cra 51B / Cra 53 / Calle 84).
 * **Measurable Impact:**
   * Reduction in total candidate transit/recharge nodes ($|V'|$) required to serve the area.
-  * Percentage of population covered within a walkable radius ($R \le 500\text{ m}$).
+  * Percentage of graph vertices covered within a walking-network radius ($R \le 500\text{ m}$).
   * Algorithmic runtime efficiency ($ms$) and spatial coverage comparison.
 
 ---
@@ -42,7 +42,7 @@ The urban road system is modeled as a weighted undirected graph $G = (V, E)$:
 
 * **Data Ingestion & Extraction:** Python (`OSMnx`, `NetworkX`)
   * Downloads OpenStreetMap data within the defined Bounding Box.
-  * Simplifies the graph topology and exports `amb_graph.json`.
+  * Simplifies the graph topology and exports `amb_graph.json` through `scraper.py`.
 * **Core Optimization Engine & Business Logic:** C# (.NET)
   * Deserializes `amb_graph.json`.
   * Computes shortest path distance matrices using Dijkstra's algorithm.
@@ -60,7 +60,7 @@ The urban road system is modeled as a weighted undirected graph $G = (V, E)$:
 [OpenStreetMap API]
        │
        ▼
- [extract_amb_small.py] ──(Python / OSMnx)
+     [scraper.py] ──(Python / OSMnx)
        │
        ▼
  [amb_graph.json]
@@ -78,9 +78,21 @@ The urban road system is modeled as a weighted undirected graph $G = (V, E)$:
 ## 6. Project Objectives Summary
 
 1. **Model:** Extract and represent the Northern Corridor graph ($G=(V,E)$) from real OSM spatial data.
-2. **Algorithm:** Implement an exact or greedy Set Cover algorithm in C# to calculate minimal dominating sets given variable radii $R$.
+2. **Algorithm:** Apply the greedy Set Cover heuristic in C# to choose candidate vertices for variable radii $R$; the result is not guaranteed to be a minimum cover.
 3. **Evaluation:** Analyze efficiency, node reduction percentages, and performance over sample test cases.
 4. **Deliverables:**
    * LaTeX Final Report (30%)
    * Executable C# WPF Application + Python Extractor (30%)
    * Oral Defense & Presentation (40%)
+
+---
+
+## 7. Dashboard & Decision Replay
+
+The WPF dashboard uses the built-in Fluent dark theme. Run an optimization to see the final graph-vertex metrics and an ordered replay of the greedy choices. Use the play/pause, start/end, previous/next, slider, or decision-history controls to inspect a particular step. The replay starts with no vertices covered and advances one selected site at a time; each history entry reports that site's incremental gain and cumulative covered-vertex count. The solved radius is shown separately from the radius slider so an existing result remains clearly labeled if the slider is changed afterward.
+
+On the map, blue marks selected sites, orange marks vertices first covered by the current step, green marks vertices covered in earlier steps, and gray marks vertices not covered yet. Marker transitions animate during playback when motion is enabled; reduced-motion settings suppress the decorative animation. The map retains its pan and zoom while stepping through a result.
+
+The optimization, decision history, and map markers work without internet access. OpenStreetMap basemap tiles require an internet connection and may be unavailable offline. Results describe coverage of vertices in the supplied road graph only: they do not establish population coverage, identify verified transit stops, prove pedestrian accessibility, or guarantee an optimal (minimum-size) set cover.
+
+If `amb_graph.json` is missing or cannot be loaded, the dashboard offers a **Generate graph** action. It runs the bundled `scraper.py`, writes the graph into the application's data location, and loads it automatically. Graph generation requires Python 3 with OSMnx installed (`python -m pip install osmnx`) and an internet connection to retrieve OpenStreetMap data. The app searches for `py -3`, `python`, and `python3`; set the `TRANSMART_PYTHON` environment variable to a Python executable when it is installed outside `PATH`.

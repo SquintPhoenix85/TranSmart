@@ -7,11 +7,13 @@ public sealed class CoverageResult
     private readonly ReadOnlyCollection<long> _selectedNodeIds;
     private readonly ReadOnlyCollection<long> _coveredNodeIds;
     private readonly ReadOnlyCollection<long> _uncoveredNodeIds;
+    private readonly ReadOnlyCollection<CoverageStep> _steps;
 
     internal CoverageResult(
         IEnumerable<long> selectedNodeIds,
         IEnumerable<long> coveredNodeIds,
         IEnumerable<long> uncoveredNodeIds,
+        IEnumerable<CoverageStep> steps,
         int totalNodeCount,
         double radiusMeters,
         double elapsedMilliseconds)
@@ -19,6 +21,7 @@ public sealed class CoverageResult
         _selectedNodeIds = Array.AsReadOnly(selectedNodeIds.ToArray());
         _coveredNodeIds = Array.AsReadOnly(coveredNodeIds.ToArray());
         _uncoveredNodeIds = Array.AsReadOnly(uncoveredNodeIds.ToArray());
+        _steps = Array.AsReadOnly(steps.ToArray());
         TotalNodeCount = totalNodeCount;
         RadiusMeters = radiusMeters;
         ElapsedMilliseconds = elapsedMilliseconds;
@@ -29,6 +32,8 @@ public sealed class CoverageResult
     public IReadOnlyList<long> CoveredNodeIds => _coveredNodeIds;
 
     public IReadOnlyList<long> UncoveredNodeIds => _uncoveredNodeIds;
+
+    public IReadOnlyList<CoverageStep> Steps => _steps;
 
     public int TotalNodeCount { get; }
 

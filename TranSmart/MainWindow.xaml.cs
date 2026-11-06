@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Threading;
 using TranSmart.ViewModels;
 
 namespace TranSmart;
@@ -22,6 +23,10 @@ namespace TranSmart;
 public partial class MainWindow : Window
 {
     private bool _mapReady;
+    private readonly DispatcherTimer _replayTimer = new(DispatcherPriority.Background)
+    {
+        Interval = TimeSpan.FromMilliseconds(850)
+    };
 
     public MainWindowViewModel ViewModel { get; }
 
@@ -31,12 +36,25 @@ public partial class MainWindow : Window
         ViewModel = new MainWindowViewModel();
         DataContext = ViewModel;
         ViewModel.PropertyChanged += ViewModel_OnPropertyChanged;
+        _replayTimer.Tick += ReplayTimer_OnTick;
     }
 
     private async void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
     {
         await ViewModel.InitializeAsync();
         await InitializeMapAsync();
+    }
+
+    private void MainWindow_OnClosed(object? sender, EventArgs e)
+    {
+        _replayTimer.Stop();
+        _replayTimer.Tick -= ReplayTimer_OnTick;
+        ViewModel.PropertyChanged -= ViewModel_OnPropertyChanged;
+
+        if (CoverageMap.CoreWebView2 is { } coreWebView)
+        {
+            coreWebView.WebMessageReceived -= CoreWebView2_OnWebMessageReceived;
+        }
     }
 
     private async Task InitializeMapAsync()
@@ -99,6 +117,16 @@ public partial class MainWindow : Window
         {
             SendMapResults();
         }
+
+        if (eventArgs.PropertyName == nameof(MainWindowViewModel.ReplayPosition))
+        {
+            SendReplayPosition();
+        }
+
+        if (eventArgs.PropertyName is nameof(MainWindowViewModel.IsPlaying) or nameof(MainWindowViewModel.IsBusy))
+        {
+            UpdateReplayTimer();
+        }
     }
 
     private void SendMapResults()
@@ -111,26 +139,32 @@ public partial class MainWindow : Window
         var graph = ViewModel.Graph;
         var result = ViewModel.Result;
         var coreWebView = CoverageMap.CoreWebView2;
-        if (graph is null || result is null || coreWebView is null)
+        if (graph is null || coreWebView is null)
         {
             return;
         }
 
         try
         {
-            var selectedNodeIds = result.SelectedNodeIds.ToHashSet();
-            var coveredNodeIds = result.CoveredNodeIds.ToHashSet();
             var message = JsonSerializer.Serialize(new
             {
                 type = "results",
+                position = ViewModel.ReplayPosition,
+                animationsEnabled = SystemParameters.ClientAreaAnimation,
                 nodes = graph.Nodes.Select(node => new
                 {
                     id = node.Id.ToString(CultureInfo.InvariantCulture),
                     lat = node.Latitude,
-                    lon = node.Longitude,
-                    selected = selectedNodeIds.Contains(node.Id),
-                    covered = coveredNodeIds.Contains(node.Id)
-                })
+                    lon = node.Longitude
+                }),
+                steps = result?.Steps.Select(step => new
+                {
+                    stepNumber = step.StepNumber,
+                    selectedNodeId = step.SelectedNodeId.ToString(CultureInfo.InvariantCulture),
+                    newlyCoveredNodeIds = step.NewlyCoveredNodeIds
+                        .Select(id => id.ToString(CultureInfo.InvariantCulture))
+                }),
+                radiusMeters = result?.RadiusMeters
             });
 
             coreWebView.PostWebMessageAsJson(message);
@@ -138,6 +172,43 @@ public partial class MainWindow : Window
         catch (Exception exception)
         {
             ViewModel.SetMapStatus($"Map update failed: {exception.Message} Optimization remains available.");
+        }
+    }
+
+    private void SendReplayPosition()
+    {
+        if (!_mapReady || CoverageMap.CoreWebView2 is not { } coreWebView)
+        {
+            return;
+        }
+
+        try
+        {
+            var message = JsonSerializer.Serialize(new
+            {
+                type = "replay",
+                position = ViewModel.ReplayPosition,
+                animationsEnabled = SystemParameters.ClientAreaAnimation
+            });
+            coreWebView.PostWebMessageAsJson(message);
+        }
+        catch (Exception exception)
+        {
+            ViewModel.SetMapStatus($"Map replay update failed: {exception.Message} Optimization remains available.");
+        }
+    }
+
+    private void ReplayTimer_OnTick(object? sender, EventArgs eventArgs) => ViewModel.AdvanceReplay();
+
+    private void UpdateReplayTimer()
+    {
+        if (ViewModel.IsPlaying && ViewModel.CanReplay)
+        {
+            _replayTimer.Start();
+        }
+        else
+        {
+            _replayTimer.Stop();
         }
     }
 }

@@ -5,17 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
-        Title="Transit Coverage Optimizer"
+        Title="Transit Coverage · Greedy Set Cover"
         Height="900"
         Width="1440"
-        MinHeight="640"
-        MinWidth="1000"
-        Background="#111827"
-        Foreground="#F3F4F6"
-        FontFamily="Segoe UI"
-        Loaded="MainWindow_OnLoaded">
-    <Grid Margin="24">
+        MinHeight="700"
+        MinWidth="1100"
+        Background="{DynamicResource DashboardBackgroundBrush}"
+        Foreground="{DynamicResource DashboardForegroundBrush}"
+        Loaded="MainWindow_OnLoaded"
+        Closed="MainWindow_OnClosed">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -23,20 +24,19 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Northern Corridor Transit Coverage"
-                       FontSize="28"
+                       FontSize="27"
                        FontWeight="Bold" />
-            <TextBlock Margin="0,6,0,0"
-                       Foreground="#AEB8C7"
-                       Text="Greedy graph-node placement using walking-network distance; vertices are hypothetical sites, not verified transit stops." />
+            <TextBlock Margin="0,5,0,0"
+                       Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                       Text="Explore how the greedy set-cover heuristic selects hypothetical sites across the walking network." />
         </StackPanel>
 
         <Border Grid.Row="1"
-                Padding="18"
-                Margin="0,0,0,18"
-                Background="#1F2937"
-                CornerRadius="10">
+                Style="{StaticResource DashboardCardStyle}"
+                Padding="16"
+                Margin="0,0,0,14">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -45,9 +45,11 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,18,0">
                     <TextBlock Text="Walking radius" FontWeight="SemiBold" />
-                    <TextBlock Text="50–500 m" Foreground="#AEB8C7" FontSize="12" />
+                    <TextBlock Text="Shortest-path distance · 50–500 m"
+                               Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                               FontSize="12" />
                 </StackPanel>
 
                 <Slider Grid.Column="1"
@@ -58,82 +60,254 @@
                         IsEnabled="{Binding CanChangeRadius}"
                         Value="{Binding RadiusMeters, UpdateSourceTrigger=PropertyChanged}"
                         VerticalAlignment="Center"
-                        Margin="0,0,20,0" />
+                        Margin="0,0,18,0" />
 
                 <TextBlock Grid.Column="2"
                            Text="{Binding RadiusMeters, StringFormat={}{0:0} m}"
                            VerticalAlignment="Center"
-                           FontSize="18"
+                           FontSize="17"
                            FontWeight="SemiBold"
-                           MinWidth="76"
-                           Margin="0,0,20,0" />
+                           MinWidth="72"
+                           Margin="0,0,18,0" />
 
                 <Button Grid.Column="3"
                         Content="Run optimization"
                         Command="{Binding RunCommand}"
-                        Padding="18,10"
-                        FontWeight="SemiBold"
-                        Background="#2563EB"
-                        Foreground="White"
-                        BorderThickness="0" />
+                        Padding="16,9"
+                        FontWeight="SemiBold" />
             </Grid>
         </Border>
 
-        <UniformGrid Grid.Row="2" Columns="6" Margin="0,0,0,18">
-            <Border Padding="14" Margin="0,0,10,0" Background="#1F2937" CornerRadius="8">
+        <Border Grid.Row="2"
+                Style="{StaticResource DashboardCardStyle}"
+                Padding="14"
+                Margin="0,0,0,12"
+                Visibility="{Binding IsGraphMissing, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                    <TextBlock Text="Road graph unavailable" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock Text="Generate amb_graph.json from OpenStreetMap. This requires Python 3, OSMnx, and an internet connection."
+                               Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,3,0,0" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="Generate graph"
+                        Command="{Binding GenerateGraphCommand}"
+                        Padding="16,9"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="3" Columns="7" Margin="0,0,0,14">
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="TOTAL VERTICES" Foreground="#AEB8C7" FontSize="11" />
-                    <TextBlock Text="{Binding TotalVertexCount, StringFormat={}{0:N0}}" FontSize="22" FontWeight="Bold" />
+                    <TextBlock Text="TOTAL VERTICES" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding TotalVertexCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
-            <Border Padding="14" Margin="0,0,10,0" Background="#1F2937" CornerRadius="8">
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="SELECTED SITES" Foreground="#AEB8C7" FontSize="11" />
-                    <TextBlock Text="{Binding SelectedSiteCount, StringFormat={}{0:N0}}" FontSize="22"
-                               FontWeight="Bold" />
+                    <TextBlock Text="SELECTED SITES" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedSiteCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
-            <Border Padding="14" Margin="0,0,10,0" Background="#1F2937" CornerRadius="8">
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="COVERED VERTICES" Foreground="#AEB8C7" FontSize="11" />
-                    <TextBlock Text="{Binding CoveredVertexCount, StringFormat={}{0:N0}}" FontSize="22"
-                               FontWeight="Bold" />
+                    <TextBlock Text="COVERED VERTICES" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding CoveredVertexCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
-            <Border Padding="14" Margin="0,0,10,0" Background="#1F2937" CornerRadius="8">
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="COVERAGE" Foreground="#AEB8C7" FontSize="11" />
-                    <TextBlock Text="{Binding CoveragePercentage, StringFormat={}{0:0.0}%}" FontSize="22"
-                               FontWeight="Bold" />
+                    <TextBlock Text="COVERAGE" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding CoveragePercentage, StringFormat={}{0:0.0}%}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
-            <Border Padding="14" Margin="0,0,10,0" Background="#1F2937" CornerRadius="8">
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="NODE REDUCTION" Foreground="#AEB8C7" FontSize="11" />
-                    <TextBlock Text="{Binding NodeReductionPercentage, StringFormat={}{0:0.0}%}" FontSize="22"
-                               FontWeight="Bold" />
+                    <TextBlock Text="NODE REDUCTION" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding NodeReductionPercentage, StringFormat={}{0:0.0}%}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
-            <Border Padding="14" Background="#1F2937" CornerRadius="8">
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="OPTIMIZATION TIME" Foreground="#AEB8C7" FontSize="11" />
-                    <TextBlock Text="{Binding OptimizationTimeMilliseconds, StringFormat={}{0:0.00} ms}" FontSize="22"
-                               FontWeight="Bold" />
+                    <TextBlock Text="SOLVED RADIUS" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SolvedRadiusText}" FontSize="21" FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="OPTIMIZATION TIME" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding OptimizationTimeMilliseconds, StringFormat={}{0:0.00} ms}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
         </UniformGrid>
 
-        <Border Grid.Row="3" Background="#1F2937" CornerRadius="10" Padding="4">
-            <wv2:WebView2 x:Name="CoverageMap" />
-        </Border>
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2.1*" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="4" Margin="0,14,0,0">
-            <TextBlock Text="{Binding MapStatusMessage}" Foreground="#93C5FD" TextWrapping="Wrap" />
+            <Grid Grid.Column="0" Margin="0,0,14,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="Coverage map" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <Border Grid.Row="1" Style="{StaticResource DashboardCardStyle}" Padding="3">
+                    <wv2:WebView2 x:Name="CoverageMap" />
+                </Border>
+            </Grid>
+
+            <Border Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Padding="16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" LastChildFill="False">
+                        <TextBlock Text="Decision replay" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock DockPanel.Dock="Right"
+                                   Text="{Binding SolvedRadiusText}"
+                                   Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <TextBlock Grid.Row="1"
+                               Margin="0,6,0,12"
+                               Text="{Binding ReplayStepSummary}"
+                               TextWrapping="Wrap"
+                               MinHeight="34" />
+
+                    <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                        <DockPanel LastChildFill="False" Margin="0,0,0,5">
+                            <TextBlock Text="Replay coverage" FontWeight="SemiBold" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Text="{Binding ReplayCoveragePercentage, StringFormat={}{0:0.0}%}"
+                                       Foreground="{DynamicResource DashboardAccentBrush}"
+                                       FontWeight="SemiBold" />
+                        </DockPanel>
+                        <ProgressBar Minimum="0"
+                                     Maximum="{Binding TotalVertexCount}"
+                                     Value="{Binding ReplayCoveredVertexCount, Mode=OneWay}"
+                                     Height="6"
+                                     Foreground="{DynamicResource DashboardAccentBrush}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <TextBlock Text="{Binding ReplayCoveredVertexCount, StringFormat={}{0:N0}}" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                            <TextBlock Text=" vertices covered · " FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                            <TextBlock Text="{Binding ReplaySelectedSiteCount, StringFormat={}{0:N0}}" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                            <TextBlock Text=" sites selected" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Slider Grid.Row="3"
+                            Minimum="0"
+                            Maximum="{Binding ReplayStepCount}"
+                            Value="{Binding ReplayPosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{Binding CanReplay}"
+                            SmallChange="1"
+                            LargeChange="1"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Margin="0,0,0,8" />
+
+                    <UniformGrid Grid.Row="4" Columns="5" Margin="0,0,0,12">
+                        <Button Content="Start" Command="{Binding GoToStartCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="Previous" Command="{Binding PreviousStepCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="{Binding PlaybackButtonText}" Command="{Binding PlayPauseCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="Next" Command="{Binding NextStepCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="End" Command="{Binding GoToEndCommand}" Padding="5,7" />
+                    </UniformGrid>
+
+                    <TextBlock Grid.Row="5"
+                               Text="Greedy decisions"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,5" />
+
+                    <ScrollViewer Grid.Row="6" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Result.Steps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.SelectReplayStepCommand, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
+                                            CommandParameter="{Binding StepNumber}"
+                                            HorizontalContentAlignment="Stretch"
+                                            Padding="0"
+                                            Margin="0,0,0,6">
+                                        <Border Style="{StaticResource DashboardCardStyle}" Padding="10">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding StepNumber}"
+                                                           Foreground="{DynamicResource DashboardAccentBrush}"
+                                                           FontWeight="Bold"
+                                                           FontSize="16"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,10,0" />
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Text="Selected site" FontSize="11" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                                                    <TextBlock Text="{Binding SelectedNodeId, StringFormat={}{0:N0}}" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="GAIN" FontSize="10" Foreground="{DynamicResource DashboardMutedForegroundBrush}" HorizontalAlignment="Right" />
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <TextBlock Text="+" FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding Gain}" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                                <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,5,0,0">
+                                                    <TextBlock Text="{Binding CoveredVertexCount, StringFormat={}{0:N0}}"
+                                                               Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                                                               FontSize="11" />
+                                                    <TextBlock Text=" vertices covered after this choice"
+                                                               Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                                                               FontSize="11" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="5" Margin="0,12,0,0">
+            <ProgressBar Height="3"
+                         IsIndeterminate="{Binding IsBusy}"
+                         Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}"
+                         Foreground="{DynamicResource DashboardAccentBrush}"
+                         Margin="0,0,0,7" />
+            <TextBlock Text="{Binding MapStatusMessage}"
+                       Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                       TextWrapping="Wrap" />
             <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="#FCA5A5" TextWrapping="Wrap" />
-            <TextBlock Margin="0,6,0,0"
-                       Text="Greedy set cover is a heuristic. Coverage represents graph vertices, not people; the road data does not verify pedestrian accessibility."
-                       Foreground="#9CA3AF"
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFF9B9B" TextWrapping="Wrap" />
+            <TextBlock Margin="0,5,0,0"
+                       Text="Greedy set cover is a heuristic, not a proof of minimum size. Coverage counts graph vertices, not people; hypothetical vertices are not verified transit stops or pedestrian access points."
+                       Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                        FontSize="11"
                        TextWrapping="Wrap" />
         </StackPanel>

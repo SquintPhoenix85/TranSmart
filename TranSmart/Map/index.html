@@ -10,7 +10,7 @@
             width: 100%;
             height: 100%;
             margin: 0;
-            background: #e5e7eb;
+            background: #202020;
             font-family: "Segoe UI", Arial, sans-serif;
         }
 
@@ -18,11 +18,11 @@
             position: absolute;
             z-index: 1000;
             padding: 10px 12px;
-            border: 1px solid #d1d5db;
+            border: 1px solid #454545;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.96);
-            color: #1f2937;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.16);
+            background: rgba(36, 36, 36, 0.96);
+            color: #f5f5f5;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
             font-size: 12px;
         }
 
@@ -52,17 +52,46 @@
             box-shadow: 0 0 0 1px #6b7280;
         }
 
-        .selected-dot { background: #2563eb; }
-        .covered-dot { background: #16a34a; }
-        .uncovered-dot { background: #dc2626; }
+        .selected-dot { background: #0078d4; }
+        .newly-covered-dot { background: #ff8c00; }
+        .covered-dot { background: #13a10e; }
+        .uncovered-dot { background: #8a8a8a; }
+
+        .leaflet-interactive {
+            transition: fill 320ms ease, fill-opacity 320ms ease, stroke 320ms ease, stroke-width 320ms ease;
+        }
+
+        .current-site {
+            animation: selected-pulse 900ms ease-in-out infinite alternate;
+        }
+
+        .newly-covered {
+            animation: coverage-pop 520ms ease-out;
+        }
+
+        @keyframes selected-pulse {
+            from { stroke-width: 2; }
+            to { stroke-width: 5; }
+        }
+
+        @keyframes coverage-pop {
+            0% { opacity: 0.45; }
+            100% { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .leaflet-interactive { transition: none; }
+            .current-site, .newly-covered { animation: none; }
+        }
     </style>
 </head>
 <body>
-    <div id="map" aria-label="Map of graph vertices and selected transit coverage sites"></div>
+    <div id="map" aria-label="Animated replay of graph coverage decisions"></div>
     <div class="legend" aria-label="Map legend">
         <div class="legend-item"><span class="legend-dot selected-dot"></span>Selected site</div>
-        <div class="legend-item"><span class="legend-dot covered-dot"></span>Covered vertex</div>
-        <div class="legend-item"><span class="legend-dot uncovered-dot"></span>Uncovered vertex</div>
+        <div class="legend-item"><span class="legend-dot newly-covered-dot"></span>Newly covered this step</div>
+        <div class="legend-item"><span class="legend-dot covered-dot"></span>Covered earlier</div>
+        <div class="legend-item"><span class="legend-dot uncovered-dot"></span>Not covered yet</div>
     </div>
     <div id="tile-status" class="tile-status" role="status">Loading OpenStreetMap tiles...</div>
 
@@ -70,6 +99,9 @@
     <script>
         (() => {
             const tileStatus = document.getElementById("tile-status");
+            const markers = new Map();
+            let replaySteps = [];
+            let animationsEnabled = true;
             const postStatus = message => {
                 if (window.chrome && window.chrome.webview) {
                     window.chrome.webview.postMessage(message);
@@ -99,57 +131,112 @@
                 tiles.on("tileerror", () => {
                     tileResponseReceived = true;
                     tileErrorReceived = true;
-                    const message = "OpenStreetMap tiles are unavailable. Check your internet connection; optimization still works offline.";
+                    const message = "OpenStreetMap tiles are unavailable. Check your internet connection; optimization and replay still work offline.";
                     setTileStatus(message);
                     postStatus("tile-error");
                 });
 
                 window.setTimeout(() => {
                     if (!tileResponseReceived) {
-                        const message = "No OpenStreetMap tiles received. Check your internet connection; optimization still works offline.";
+                        const message = "No OpenStreetMap tiles received. Check your internet connection; optimization and replay still work offline.";
                         setTileStatus(message);
                         postStatus("tile-error");
                     }
                 }, 10000);
 
+                const updateReplay = (position, animate) => {
+                    const replayPosition = Math.max(0, Math.min(replaySteps.length, Number(position) || 0));
+                    const appliedSteps = replaySteps.slice(0, replayPosition);
+                    const selectedSites = new Set(appliedSteps.map(step => String(step.selectedNodeId)));
+                    const coveredNodes = new Set(appliedSteps.flatMap(step =>
+                        Array.isArray(step.newlyCoveredNodeIds) ? step.newlyCoveredNodeIds.map(String) : []));
+                    const currentStep = replayPosition > 0 ? replaySteps[replayPosition - 1] : null;
+                    const currentSiteId = currentStep ? String(currentStep.selectedNodeId) : null;
+                    const newlyCoveredNodes = new Set(currentStep && Array.isArray(currentStep.newlyCoveredNodeIds)
+                        ? currentStep.newlyCoveredNodeIds.map(String)
+                        : []);
+
+                    for (const [id, entry] of markers) {
+                        const selected = selectedSites.has(id);
+                        const currentSite = id === currentSiteId;
+                        const newlyCovered = newlyCoveredNodes.has(id);
+                        const covered = coveredNodes.has(id);
+                        const color = selected ? "#0078d4" : newlyCovered ? "#ff8c00" : covered ? "#13a10e" : "#8a8a8a";
+                        entry.marker.setStyle({
+                            radius: currentSite ? 9 : selected ? 7 : newlyCovered ? 7 : 5,
+                            color,
+                            weight: currentSite ? 3 : selected ? 2 : 1,
+                            fillColor: color,
+                            fillOpacity: selected || newlyCovered ? 0.98 : covered ? 0.82 : 0.58
+                        });
+
+                        const label = currentSite ? "Selected in this step" : selected ? "Selected site" :
+                            newlyCovered ? "Newly covered in this step" : covered ? "Covered vertex" : "Not covered yet";
+                        entry.title.textContent = label;
+
+                        const element = entry.marker.getElement();
+                        if (element) {
+                            element.classList.remove("current-site", "newly-covered");
+                            if (animate && animationsEnabled) {
+                                if (currentSite) {
+                                    element.classList.add("current-site");
+                                } else if (newlyCovered) {
+                                    element.classList.add("newly-covered");
+                                }
+                            }
+                        }
+                    }
+                };
+
                 window.chrome.webview.addEventListener("message", event => {
                     const message = event.data;
+                    if (!message || typeof message !== "object") {
+                        return;
+                    }
+
+                    if (message.type === "replay") {
+                        animationsEnabled = message.animationsEnabled !== false;
+                        updateReplay(message.position, true);
+                        return;
+                    }
+
                     if (message.type !== "results" || !Array.isArray(message.nodes)) {
                         return;
                     }
 
                     resultLayer.clearLayers();
+                    markers.clear();
+                    replaySteps = Array.isArray(message.steps) ? message.steps : [];
+                    animationsEnabled = message.animationsEnabled !== false;
                     const bounds = [];
                     for (const point of message.nodes) {
-                        const selected = point.selected === true;
-                        const covered = point.covered === true;
-                        const color = selected ? "#2563eb" : covered ? "#16a34a" : "#dc2626";
-                        const label = selected ? "Selected site" : covered ? "Covered vertex" : "Uncovered vertex";
                         const popup = document.createElement("div");
                         const title = document.createElement("strong");
                         const nodeId = document.createElement("div");
-                        title.textContent = label;
+                        title.textContent = "Not covered yet";
                         nodeId.textContent = `Node ID: ${point.id}`;
                         popup.append(title, nodeId);
 
-                        L.circleMarker([point.lat, point.lon], {
-                            radius: selected ? 8 : 5,
-                            color,
-                            weight: selected ? 2 : 1,
-                            fillColor: color,
-                            fillOpacity: 0.86
+                        const marker = L.circleMarker([point.lat, point.lon], {
+                            radius: 5,
+                            color: "#8a8a8a",
+                            weight: 1,
+                            fillColor: "#8a8a8a",
+                            fillOpacity: 0.58
                         }).bindPopup(popup).addTo(resultLayer);
+                        markers.set(String(point.id), { marker, title });
                         bounds.push([point.lat, point.lon]);
                     }
 
                     if (bounds.length > 0) {
                         map.fitBounds(bounds, { padding: [24, 24], maxZoom: 16 });
                     }
+                    updateReplay(message.position, false);
                 });
 
                 postStatus("ready");
             } catch (error) {
-                const message = `Map initialization failed: ${error.message}. Optimization remains available.`;
+                const message = `Map initialization failed: ${error.message}. Optimization and decision history remain available.`;
                 setTileStatus(message);
                 postStatus("map-error");
             }

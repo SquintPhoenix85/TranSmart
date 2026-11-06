@@ -23,6 +23,49 @@ public sealed class CoverageOptimizerTests
     }
 
     [Fact]
+    public void Optimize_RecordsIncrementalFirstCoverageForEachGreedyChoice()
+    {
+        var graph = CreateGraph(
+            [1, 2, 3, 4],
+            [(1, 2, 1.0), (2, 3, 1.0), (3, 4, 1.0)]);
+
+        var result = CoverageOptimizer.Optimize(graph, 1.0);
+
+        Assert.Equal([2L, 4L], result.SelectedNodeIds);
+        Assert.Collection(
+            result.Steps,
+            first =>
+            {
+                Assert.Equal(1, first.StepNumber);
+                Assert.Equal(2L, first.SelectedNodeId);
+                Assert.Equal(3, first.Gain);
+                Assert.Equal([1L, 2L, 3L], first.NewlyCoveredNodeIds);
+                Assert.Equal(3, first.CoveredVertexCount);
+            },
+            second =>
+            {
+                Assert.Equal(2, second.StepNumber);
+                Assert.Equal(4L, second.SelectedNodeId);
+                Assert.Equal(1, second.Gain);
+                Assert.Equal([4L], second.NewlyCoveredNodeIds);
+                Assert.Equal(4, second.CoveredVertexCount);
+            });
+
+        Assert.Equal(result.CoveredNodeIds.Order(), result.Steps.SelectMany(step => step.NewlyCoveredNodeIds).Order());
+        Assert.Equal(result.CoveredNodeCount, result.Steps[^1].CoveredVertexCount);
+    }
+
+    [Fact]
+    public void Optimize_EmptyGraphProducesAnEmptyDecisionTrace()
+    {
+        var result = CoverageOptimizer.Optimize(CreateGraph([], []), 0);
+
+        Assert.Empty(result.Steps);
+        Assert.Empty(result.SelectedNodeIds);
+        Assert.Empty(result.CoveredNodeIds);
+    }
+
+    [Fact]
     public void Optimize_RespectsRadiusBoundary()
     {
         var graph = CreateGraph([1, 2], [(1, 2, 50.0)]);

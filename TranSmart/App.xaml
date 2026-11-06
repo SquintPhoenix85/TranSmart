@@ -4,6 +4,25 @@
              xmlns:local="clr-namespace:TranSmart"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <SolidColorBrush x:Key="DashboardBackgroundBrush" Color="#FF202020" />
+            <SolidColorBrush x:Key="DashboardSurfaceBrush" Color="#FF292929" />
+            <SolidColorBrush x:Key="DashboardBorderBrush" Color="#FF414141" />
+            <SolidColorBrush x:Key="DashboardForegroundBrush" Color="#FFF5F5F5" />
+            <SolidColorBrush x:Key="DashboardMutedForegroundBrush" Color="#FFC5C5C5" />
+            <SolidColorBrush x:Key="DashboardAccentBrush" Color="#FF60CDFF" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+            <Style x:Key="DashboardCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource DashboardSurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource DashboardBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="8" />
+            </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -25,6 +25,7 @@ public static class CoverageOptimizer
         var isSelected = new bool[nodeCount];
         var coveredCount = 0;
         var selectedNodeIds = new List<long>();
+        var steps = new List<CoverageStep>();
 
         while (coveredCount < nodeCount)
         {
@@ -63,15 +64,20 @@ public static class CoverageOptimizer
             }
 
             isSelected[bestCandidateIndex] = true;
-            selectedNodeIds.Add(graph.Nodes[bestCandidateIndex].Id);
+            var selectedNodeId = graph.Nodes[bestCandidateIndex].Id;
+            selectedNodeIds.Add(selectedNodeId);
+            var newlyCoveredNodeIds = new List<long>(bestGain);
             foreach (var demandIndex in neighborhoods[bestCandidateIndex])
             {
                 if (!isCovered[demandIndex])
                 {
                     isCovered[demandIndex] = true;
                     coveredCount++;
+                    newlyCoveredNodeIds.Add(graph.Nodes[demandIndex].Id);
                 }
             }
+
+            steps.Add(new CoverageStep(steps.Count + 1, selectedNodeId, newlyCoveredNodeIds, coveredCount));
         }
 
         stopwatch.Stop();
@@ -90,6 +96,7 @@ public static class CoverageOptimizer
             selectedNodeIds,
             coveredNodeIds,
             uncoveredNodeIds,
+            steps,
             nodeCount,
             radiusMeters,
             stopwatch.Elapsed.TotalMilliseconds);
