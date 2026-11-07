@@ -25,12 +25,12 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Northern Corridor Transit Coverage"
+            <TextBlock Text="Estudio de Cubrimiento de Redes de Tránsito Masivo"
                        FontSize="27"
                        FontWeight="Bold" />
             <TextBlock Margin="0,5,0,0"
                        Foreground="{DynamicResource DashboardMutedForegroundBrush}"
-                       Text="Explore how the greedy set-cover heuristic selects hypothetical sites across the walking network." />
+                       Text="Exploremos como podemos recorrer el problema de cubrimiento de conjuntos por métodos heurísticos." />
         </StackPanel>
 
         <Border Grid.Row="1"
@@ -46,8 +46,8 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,18,0">
-                    <TextBlock Text="Walking radius" FontWeight="SemiBold" />
-                    <TextBlock Text="Shortest-path distance · 50–500 m"
+                    <TextBlock Text="Radio de caminata" FontWeight="SemiBold" />
+                    <TextBlock Text="Distancia del camino más corto: 50 - 500 m"
                                Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                                FontSize="12" />
                 </StackPanel>
@@ -89,8 +89,8 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                    <TextBlock Text="Road graph unavailable" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock Text="Generate amb_graph.json from OpenStreetMap. This requires Python 3, OSMnx, and an internet connection."
+                    <TextBlock Text="Grafo de carreteras no disponible" FontWeight="SemiBold" FontSize="15" />
+                    <TextBlock Text="Genera amb_graph.json usando datos de OpenStreetMap. Esto requiere Python 3, OSMnx y una conexi[on a internet estable."
                                Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                                TextWrapping="Wrap"
                                Margin="0,3,0,0" />
@@ -107,43 +107,43 @@
         <UniformGrid Grid.Row="3" Columns="7" Margin="0,0,0,14">
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="TOTAL VERTICES" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Total de Vértices" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding TotalVertexCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="SELECTED SITES" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Sitios elegidos" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding SelectedSiteCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="COVERED VERTICES" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Vértices cubiertos" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding CoveredVertexCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="COVERAGE" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Cubrimiento" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding CoveragePercentage, StringFormat={}{0:0.0}%}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="NODE REDUCTION" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Reducción de nodos" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding NodeReductionPercentage, StringFormat={}{0:0.0}%}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="SOLVED RADIUS" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Radio resuelto" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding SolvedRadiusText}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12">
                 <StackPanel>
-                    <TextBlock Text="OPTIMIZATION TIME" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Tiempo de optimización" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding OptimizationTimeMilliseconds, StringFormat={}{0:0.00} ms}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
@@ -160,7 +160,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <TextBlock Text="Coverage map" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock Text="Mapa de cubrimiento" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,8" />
                 <Border Grid.Row="1" Style="{StaticResource DashboardCardStyle}" Padding="3">
                     <wv2:WebView2 x:Name="CoverageMap" />
                 </Border>
