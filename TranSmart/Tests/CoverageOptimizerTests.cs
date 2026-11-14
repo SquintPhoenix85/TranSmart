@@ -9,6 +9,64 @@ namespace TranSmart.Tests;
 public sealed class CoverageOptimizerTests
 {
     [Fact]
+    public void Optimize_DefaultUsesCandidatesButKeepsNonCandidatesAsDemand()
+    {
+        var graph = CreateGraph([1, 2, 3], [(1, 2, 1.0)], [1]);
+        var result = CoverageOptimizer.Optimize(graph, 1);
+
+        Assert.Equal([1L], result.SelectedNodeIds);
+        Assert.Equal([1L, 2L], result.CoveredNodeIds);
+        Assert.Equal([3L], result.UncoveredNodeIds);
+        Assert.False(result.IsFeasible);
+    }
+    [Fact]
+    public void Optimize_RestrictsCandidatesButCoversEveryNode()
+    {
+        var graph = CreateGraph([1, 2, 3], [(1, 2, 1.0), (2, 3, 1.0)]);
+        var result = CoverageOptimizer.Optimize(graph, 1, [2, 2]);
+
+        Assert.True(result.IsFeasible);
+        Assert.Equal([2L], result.SelectedNodeIds);
+        Assert.Equal([1L, 2L, 3L], result.CoveredNodeIds);
+    }
+
+    [Fact]
+    public void Optimize_ReportsUnreachableDemandAndEmptyCandidates()
+    {
+        var graph = CreateGraph([1, 2, 3], [(1, 2, 0.0)]);
+        var partial = CoverageOptimizer.Optimize(graph, 0, [1]);
+        var empty = CoverageOptimizer.Optimize(graph, 0, []);
+
+        Assert.False(partial.IsFeasible);
+        Assert.Equal([1L, 2L], partial.CoveredNodeIds);
+        Assert.Equal([3L], partial.UncoveredNodeIds);
+        Assert.False(empty.IsFeasible);
+        Assert.Equal([1L, 2L, 3L], empty.UncoveredNodeIds);
+        Assert.Empty(empty.Steps);
+        Assert.True(CoverageOptimizer.Optimize(CreateGraph([], []), 0, []).IsFeasible);
+    }
+
+    [Fact]
+    public void Optimize_RejectsUnknownCandidates()
+    {
+        var graph = CreateGraph([1], []);
+        Assert.Throws<ArgumentException>(() => CoverageOptimizer.Optimize(graph, 0, [2]));
+        Assert.Throws<ArgumentNullException>(() => CoverageOptimizer.Optimize(graph, 0, null!));
+    }
+
+    [Fact]
+    public void Optimize_RejectsIneligibleCandidates()
+    {
+        var graph = CreateGraph([1, 2], [(1, 2, 1.0)], [1]);
+
+        var exception = Assert.Throws<ArgumentException>(() => CoverageOptimizer.Optimize(graph, 1, [1, 2]));
+
+        Assert.Equal("candidateNodeIds", exception.ParamName);
+        Assert.Contains("2", exception.Message);
+        Assert.Contains("eligible", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Optimize_UsesShortestWeightedPathAndCoversExactRadiusBoundary()
     {
         var graph = CreateGraph(
@@ -31,7 +89,7 @@ public sealed class CoverageOptimizerTests
 
         var result = CoverageOptimizer.Optimize(graph, 1.0);
 
-        Assert.Equal([2L, 4L], result.SelectedNodeIds);
+        Assert.Equal([2L, 3L], result.SelectedNodeIds);
         Assert.Collection(
             result.Steps,
             first =>
@@ -45,7 +103,7 @@ public sealed class CoverageOptimizerTests
             second =>
             {
                 Assert.Equal(2, second.StepNumber);
-                Assert.Equal(4L, second.SelectedNodeId);
+                Assert.Equal(3L, second.SelectedNodeId);
                 Assert.Equal(1, second.Gain);
                 Assert.Equal([4L], second.NewlyCoveredNodeIds);
                 Assert.Equal(4, second.CoveredVertexCount);
@@ -131,23 +189,26 @@ public sealed class CoverageOptimizerTests
     }
 
     [Fact]
-    public void Optimize_SuppliedGraphProducesCompleteCoverageAt500Meters()
+    public void Optimize_SuppliedGraphReportsCoverageAt500Meters()
     {
         var graph = GraphLoader.Load(Path.Combine(AppContext.BaseDirectory, "amb_graph.json"));
 
         var result = CoverageOptimizer.Optimize(graph, 500.0);
 
-        Assert.Equal(graph.Nodes.Count, result.CoveredNodeCount);
-        Assert.Empty(result.UncoveredNodeIds);
+        Assert.All(result.SelectedNodeIds, id => Assert.Contains(id, graph.CandidateSiteIds));
+        Assert.Equal(graph.Nodes.Select(node => node.Id).Order(), result.CoveredNodeIds.Concat(result.UncoveredNodeIds).Order());
+        Assert.Equal(result.UncoveredNodeIds.Count == 0, result.IsFeasible);
         Assert.Equal(graph.Nodes.Count, result.TotalNodeCount);
         Assert.Equal(500.0, result.RadiusMeters);
     }
 
-    private static Graph CreateGraph(long[] nodeIds, (long Source, long Target, double Length)[] edges)
+    private static Graph CreateGraph(long[] nodeIds, (long Source, long Target, double Length)[] edges, long[]? candidates = null)
     {
         var json = JsonSerializer.Serialize(new
         {
-            nodes = nodeIds.Select(id => new { id, lat = 11.0, lon = -74.8 }),
+            schemaVersion = 2,
+            networkType = "walk",
+            nodes = nodeIds.Select(id => new { id, lat = 11.0, lon = -74.8, isCandidateSite = candidates is null || candidates.Contains(id) }),
             edges = edges.Select(edge => new { source = edge.Source, target = edge.Target, length = edge.Length })
         });
         var path = Path.Combine(Path.GetTempPath(), $"transmart-{Guid.NewGuid():N}.json");

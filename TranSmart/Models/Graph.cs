@@ -5,11 +5,13 @@ namespace TranSmart.Models;
 public sealed class Graph
 {
     private readonly ReadOnlyCollection<GraphNode> _nodes;
+    private readonly ReadOnlyCollection<long> _candidateSiteIds;
     private readonly Dictionary<long, int> _nodeIndices;
 
     internal Graph(IReadOnlyList<GraphNode> nodes, int edgeCount)
     {
         _nodes = Array.AsReadOnly(nodes.ToArray());
+        _candidateSiteIds = Array.AsReadOnly(_nodes.Where(node => node.IsCandidateSite).Select(node => node.Id).ToArray());
         _nodeIndices = new Dictionary<long, int>(_nodes.Count);
 
         for (var index = 0; index < _nodes.Count; index++)
@@ -22,6 +24,10 @@ public sealed class Graph
 
     public IReadOnlyList<GraphNode> Nodes => _nodes;
 
+    public IReadOnlyList<long> CandidateSiteIds => _candidateSiteIds;
+
+    public int CandidateSiteCount => _candidateSiteIds.Count;
+
     public int EdgeCount { get; }
 
     public bool TryGetNodeIndex(long nodeId, out int index) => _nodeIndices.TryGetValue(nodeId, out index);
@@ -31,11 +37,12 @@ public sealed class GraphNode
 {
     private readonly ReadOnlyCollection<GraphEdge> _edges;
 
-    internal GraphNode(long id, double latitude, double longitude, IEnumerable<GraphEdge> edges)
+    internal GraphNode(long id, double latitude, double longitude, bool isCandidateSite, IEnumerable<GraphEdge> edges)
     {
         Id = id;
         Latitude = latitude;
         Longitude = longitude;
+        IsCandidateSite = isCandidateSite;
         _edges = Array.AsReadOnly(edges.ToArray());
     }
 
@@ -44,6 +51,8 @@ public sealed class GraphNode
     public double Latitude { get; }
 
     public double Longitude { get; }
+
+    public bool IsCandidateSite { get; }
 
     public IReadOnlyList<GraphEdge> Edges => _edges;
 }

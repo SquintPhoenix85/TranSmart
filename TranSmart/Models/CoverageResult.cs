@@ -41,6 +41,8 @@ public sealed class CoverageResult
 
     public int CoveredNodeCount => CoveredNodeIds.Count;
 
+    public bool IsFeasible => UncoveredNodeIds.Count == 0;
+
     public double RadiusMeters { get; }
 
     public double ElapsedMilliseconds { get; }

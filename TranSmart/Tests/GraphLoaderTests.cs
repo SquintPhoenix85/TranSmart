@@ -8,6 +8,44 @@ namespace TranSmart.Tests;
 
 public sealed class GraphLoaderTests
 {
+    [Theory]
+    [InlineData("{\"networkType\":\"walk\",\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":1,\"networkType\":\"walk\",\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":\"2\",\"networkType\":\"walk\",\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"networkType\":\"drive\",\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"networkType\":null,\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"networkType\":5,\"nodes\":[],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"networkType\":\"walk\",\"nodes\":[{\"id\":1,\"lat\":0,\"lon\":0}],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"networkType\":\"walk\",\"nodes\":[{\"id\":1,\"lat\":0,\"lon\":0,\"isCandidateSite\":null}],\"edges\":[]}")]
+    [InlineData("{\"schemaVersion\":2,\"networkType\":\"walk\",\"nodes\":[{\"id\":1,\"lat\":0,\"lon\":0,\"isCandidateSite\":\"true\"}],\"edges\":[]}")]
+    public void Load_RejectsInvalidMetadata(string json)
+    {
+        Assert.Throws<InvalidDataException>(() => LoadRaw(json));
+    }
+
+    [Fact]
+    public void Load_PreservesCandidateFlags()
+    {
+        var graph = LoadRaw("""
+                            {"schemaVersion":2,"networkType":"walk","nodes":[
+                              {"id":9,"lat":0,"lon":0,"isCandidateSite":false},
+                              {"id":4,"lat":0,"lon":0,"isCandidateSite":true}
+                            ],"edges":[]}
+                            """);
+        Assert.False(graph.Nodes[0].IsCandidateSite);
+        Assert.True(graph.Nodes[1].IsCandidateSite);
+        Assert.Equal([4L], graph.CandidateSiteIds);
+        Assert.Equal(1, graph.CandidateSiteCount);
+    }
+    [Theory]
+    [InlineData("{\"nodes\":null,\"edges\":[]}")]
+    [InlineData("{\"nodes\":[],\"edges\":null}")]
+    public void Load_RejectsNullCollections(string json)
+    {
+        Assert.Throws<InvalidDataException>(() => Load(json));
+    }
+
     [Fact]
     public void Load_Preserves64BitIdsAndIsolatedNodes()
     {
@@ -122,11 +160,28 @@ public sealed class GraphLoaderTests
         var graph = GraphLoader.Load(graphPath);
         using var document = JsonDocument.Parse(File.ReadAllText(graphPath));
 
-        Assert.Equal(852, graph.Nodes.Count);
-        Assert.Equal(1920, document.RootElement.GetProperty("edges").GetArrayLength());
+        Assert.Equal(document.RootElement.GetProperty("nodes").GetArrayLength(), graph.Nodes.Count);
+        Assert.Equal(document.RootElement.GetProperty("nodes").EnumerateArray().Count(node => node.GetProperty("isCandidateSite").GetBoolean()), graph.CandidateSiteCount);
+        Assert.True(graph.EdgeCount <= document.RootElement.GetProperty("edges").GetArrayLength());
     }
 
     private static Graph Load(string json)
+    {
+        var document = System.Text.Json.Nodes.JsonNode.Parse(json)!.AsObject();
+        document["schemaVersion"] = 2;
+        document["networkType"] = "walk";
+        if (document["nodes"] is System.Text.Json.Nodes.JsonArray nodes)
+        {
+            foreach (var node in nodes.OfType<System.Text.Json.Nodes.JsonObject>())
+            {
+                node["isCandidateSite"] = true;
+            }
+        }
+
+        return LoadRaw(document.ToJsonString());
+    }
+
+    private static Graph LoadRaw(string json)
     {
         var path = Path.Combine(Path.GetTempPath(), $"transmart-{Guid.NewGuid():N}.json");
         try

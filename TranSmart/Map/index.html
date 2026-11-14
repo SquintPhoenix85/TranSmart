@@ -56,6 +56,7 @@
         .newly-covered-dot { background: #ff8c00; }
         .covered-dot { background: #13a10e; }
         .uncovered-dot { background: #8a8a8a; }
+        .candidate-dot { background: #8a8a8a; border: 2px solid #e6c84a; }
 
         .leaflet-interactive {
             transition: fill 320ms ease, fill-opacity 320ms ease, stroke 320ms ease, stroke-width 320ms ease;
@@ -92,6 +93,7 @@
         <div class="legend-item"><span class="legend-dot newly-covered-dot"></span>Newly covered this step</div>
         <div class="legend-item"><span class="legend-dot covered-dot"></span>Covered earlier</div>
         <div class="legend-item"><span class="legend-dot uncovered-dot"></span>Not covered yet</div>
+        <div class="legend-item"><span class="legend-dot candidate-dot"></span>Eligible candidate (gold outline)</div>
     </div>
     <div id="tile-status" class="tile-status" role="status">Loading OpenStreetMap tiles...</div>
 
@@ -100,6 +102,7 @@
         (() => {
             const tileStatus = document.getElementById("tile-status");
             const markers = new Map();
+            let candidateIds = new Set();
             let replaySteps = [];
             let animationsEnabled = true;
             const postStatus = message => {
@@ -161,18 +164,19 @@
                         const currentSite = id === currentSiteId;
                         const newlyCovered = newlyCoveredNodes.has(id);
                         const covered = coveredNodes.has(id);
+                        const candidate = candidateIds.has(id);
                         const color = selected ? "#0078d4" : newlyCovered ? "#ff8c00" : covered ? "#13a10e" : "#8a8a8a";
                         entry.marker.setStyle({
                             radius: currentSite ? 9 : selected ? 7 : newlyCovered ? 7 : 5,
-                            color,
-                            weight: currentSite ? 3 : selected ? 2 : 1,
+                            color: selected ? color : candidate ? "#e6c84a" : color,
+                            weight: currentSite ? 3 : selected || candidate ? 2 : 1,
                             fillColor: color,
                             fillOpacity: selected || newlyCovered ? 0.98 : covered ? 0.82 : 0.58
                         });
 
                         const label = currentSite ? "Selected in this step" : selected ? "Selected site" :
                             newlyCovered ? "Newly covered in this step" : covered ? "Covered vertex" : "Not covered yet";
-                        entry.title.textContent = label;
+                        entry.title.textContent = `${label} · ${candidate ? "Eligible candidate" : "Demand node only"}`;
 
                         const element = entry.marker.getElement();
                         if (element) {
@@ -207,6 +211,7 @@
                     resultLayer.clearLayers();
                     markers.clear();
                     replaySteps = Array.isArray(message.steps) ? message.steps : [];
+                    candidateIds = new Set(Array.isArray(message.candidateNodeIds) ? message.candidateNodeIds.map(String) : []);
                     animationsEnabled = message.animationsEnabled !== false;
                     const bounds = [];
                     for (const point of message.nodes) {

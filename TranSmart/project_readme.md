@@ -29,20 +29,22 @@ To maintain computational efficiency and high data density, the project isolates
 
 ## 3. Mathematical Modeling (Discrete Theory)
 
-The urban road system is modeled as a weighted undirected graph $G = (V, E)$:
-* **Vertices ($V$):** Intersections and candidate bus stops/stations.
-* **Edges ($E$):** Road segments with weights $w(e)$ corresponding to physical distance in meters.
+The simplified OSM walking network is modeled as a weighted undirected graph $G = (V, E)$:
+* **Demand vertices ($V$):** Every network node is one equally weighted demand point, not a population estimate.
+* **Candidate sites ($C \subseteq V$):** Nodes with at least three distinct incoming or outgoing pedestrian-network neighbors, a reproducible proxy for intersections.
+* **Edges ($E$):** Walking-network segments weighted by their OSM length in meters; distances are undirected shortest-path distances along these segments, not straight-line distances.
 * **Optimization Goal (Greedy Set Cover):**
-  $$\text{Minimize } |V'| \quad \text{subject to } \bigcup_{v \in V'} N_R(v) = V$$
+  $$\text{Minimize } |V'|,\quad V' \subseteq C, \quad \text{subject to } \bigcup_{v \in V'} N_R(v) = V$$
   where $N_R(v) = \{ u \in V \mid d(u, v) \le R \}$ represents the neighborhood of nodes within walking distance $R$.
+  If a demand node cannot be reached from any candidate within $R$, the instance is infeasible.
 
 ---
 
 ## 4. Software Architecture & Technology Stack
 
 * **Data Ingestion & Extraction:** Python (`OSMnx`, `NetworkX`)
-  * Downloads OpenStreetMap data within the defined Bounding Box.
-  * Simplifies the graph topology and exports `amb_graph.json` through `scraper.py`.
+  * Downloads the simplified OpenStreetMap walking network within the defined Bounding Box.
+  * Exports `amb_graph.json` through `scraper.py` with `schemaVersion: 2`, `networkType: "walk"`, and an `isCandidateSite` flag for every node. Older driving-network files must be regenerated.
 * **Core Optimization Engine & Business Logic:** C# (.NET)
   * Deserializes `amb_graph.json`.
   * Computes shortest path distance matrices using Dijkstra's algorithm.
@@ -89,10 +91,10 @@ The urban road system is modeled as a weighted undirected graph $G = (V, E)$:
 
 ## 7. Dashboard & Decision Replay
 
-The WPF dashboard uses the built-in Fluent dark theme. Run an optimization to see the final graph-vertex metrics and an ordered replay of the greedy choices. Use the play/pause, start/end, previous/next, slider, or decision-history controls to inspect a particular step. The replay starts with no vertices covered and advances one selected site at a time; each history entry reports that site's incremental gain and cumulative covered-vertex count. The solved radius is shown separately from the radius slider so an existing result remains clearly labeled if the slider is changed afterward.
+The WPF dashboard uses the built-in Fluent dark theme. Run an optimization to see graph-node coverage (covered demand nodes divided by all demand nodes), site reduction (unselected eligible candidates divided by all eligible candidates), and an ordered replay of the greedy choices. Use the play/pause, start/end, previous/next, slider, or decision-history controls to inspect a particular step. The replay starts with no vertices covered and advances one selected site at a time; each history entry reports that site's incremental gain and cumulative covered-vertex count. The solved radius is shown separately from the radius slider so an existing result remains clearly labeled if the slider is changed afterward.
 
-On the map, blue marks selected sites, orange marks vertices first covered by the current step, green marks vertices covered in earlier steps, and gray marks vertices not covered yet. Marker transitions animate during playback when motion is enabled; reduced-motion settings suppress the decorative animation. The map retains its pan and zoom while stepping through a result.
+The map distinguishes eligible candidate sites from other demand nodes and selected sites, while showing the coverage state during replay. Marker transitions animate during playback when motion is enabled; reduced-motion settings suppress the decorative animation. The map retains its pan and zoom while stepping through a result.
 
-The optimization, decision history, and map markers work without internet access. OpenStreetMap basemap tiles require an internet connection and may be unavailable offline. Results describe coverage of vertices in the supplied road graph only: they do not establish population coverage, identify verified transit stops, prove pedestrian accessibility, or guarantee an optimal (minimum-size) set cover.
+The optimization, decision history, and map markers work without internet access. OpenStreetMap basemap tiles require an internet connection and may be unavailable offline. Results describe coverage of nodes in the supplied walking graph only, not population coverage: node density is not population density. They do not identify verified transit stops, prove pedestrian accessibility, or guarantee an optimal (minimum-size) set cover.
 
 If `amb_graph.json` is missing or cannot be loaded, the dashboard offers a **Generate graph** action. It runs the bundled `scraper.py`, writes the graph into the application's data location, and loads it automatically. Graph generation requires Python 3 with OSMnx installed (`python -m pip install osmnx`) and an internet connection to retrieve OpenStreetMap data. The app searches for `py -3`, `python`, and `python3`; set the `TRANSMART_PYTHON` environment variable to a Python executable when it is installed outside `PATH`.

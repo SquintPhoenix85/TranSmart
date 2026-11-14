@@ -6,7 +6,7 @@ import json
 west, south, east, north = -74.835, 10.995, -74.810, 11.025
 
 print("Descargando red vial reducida de OSM...")
-G = ox.graph_from_bbox(bbox=(west, south, east, north), network_type='drive', simplify=True)
+G = ox.graph_from_bbox(bbox=(west, south, east, north), network_type='walk', simplify=True)
 
 # Estructurar datos para exportación a JSON
 nodes_data = []
@@ -14,7 +14,8 @@ for node_id, data in G.nodes(data=True):
     nodes_data.append({
         "id": int(node_id),
         "lat": data['y'],
-        "lon": data['x']
+        "lon": data['x'],
+        "isCandidateSite": len((set(G.predecessors(node_id)) | set(G.successors(node_id))) - {node_id}) >= 3
     })
 
 edges_data = []
@@ -22,10 +23,12 @@ for u, v, data in G.edges(data=True):
     edges_data.append({
         "source": int(u),
         "target": int(v),
-        "length": round(data.get('length', 0), 2)  # Distancia en metros
+        "length": data['length']  # Distancia en metros
     })
 
 graph_json = {
+    "schemaVersion": 2,
+    "networkType": "walk",
     "nodes": nodes_data,
     "edges": edges_data
 }

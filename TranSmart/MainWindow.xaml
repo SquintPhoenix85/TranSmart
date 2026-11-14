@@ -90,7 +90,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
                     <TextBlock Text="Grafo de carreteras no disponible" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock Text="Genera amb_graph.json usando datos de OpenStreetMap. Esto requiere Python 3, OSMnx y una conexi[on a internet estable."
+                    <TextBlock Text="Genera amb_graph.json usando datos de OpenStreetMap. Esto requiere Python 3, OSMnx y una conexión a internet estable."
                                Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                                TextWrapping="Wrap"
                                Margin="0,3,0,0" />
@@ -104,11 +104,17 @@
             </Grid>
         </Border>
 
-        <UniformGrid Grid.Row="3" Columns="7" Margin="0,0,0,14">
+        <UniformGrid Grid.Row="3" Columns="8" Margin="0,0,0,14">
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="Total de Vértices" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Nodos de demanda" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding TotalVertexCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Text="Candidatos elegibles" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding CandidateSiteCount, StringFormat={}{0:N0}}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
@@ -131,7 +137,7 @@
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="Reducción de nodos" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Reducción de candidatos" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding NodeReductionPercentage, StringFormat={}{0:0.0}%}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
@@ -179,7 +185,7 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" LastChildFill="False">
-                        <TextBlock Text="Decision replay" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Muestra de la toma de decisiones" FontSize="18" FontWeight="SemiBold" />
                         <TextBlock DockPanel.Dock="Right"
                                    Text="{Binding SolvedRadiusText}"
                                    Foreground="{DynamicResource DashboardMutedForegroundBrush}"
@@ -306,7 +312,7 @@
             <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFF9B9B" TextWrapping="Wrap" />
             <TextBlock Margin="0,5,0,0"
-                       Text="Greedy set cover is a heuristic, not a proof of minimum size. Coverage counts graph vertices, not people; hypothetical vertices are not verified transit stops or pedestrian access points."
+                       Text="Greedy set cover is a heuristic, not a proof of minimum size. Coverage is measured over all demand nodes; reduction is measured over eligible candidates. Sites are not verified transit stops or pedestrian access points."
                        Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                        FontSize="11"
                        TextWrapping="Wrap" />

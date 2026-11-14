@@ -33,8 +33,13 @@ public static class GraphLoader
             throw new InvalidDataException($"Graph file '{path}' must contain a JSON object.");
         }
 
-        var records = document.Nodes;
-        var edgeRecords = document.Edges;
+        if (document.SchemaVersion != 2 || document.NetworkType != "walk")
+        {
+            throw new InvalidDataException($"Graph file '{path}' must have schemaVersion 2 and networkType 'walk'. Regenerate stale graph data.");
+        }
+
+        var records = document.Nodes ?? throw new InvalidDataException($"Graph file '{path}' must contain a non-null nodes array.");
+        var edgeRecords = document.Edges ?? throw new InvalidDataException($"Graph file '{path}' must contain a non-null edges array.");
         var nodeIndices = new Dictionary<long, int>(records.Count);
         var nodes = new NodeRecord[records.Count];
 
@@ -107,7 +112,7 @@ public static class GraphLoader
         for (var index = 0; index < nodes.Length; index++)
         {
             var node = nodes[index];
-            graphNodes[index] = new GraphNode(node.Id, node.Latitude, node.Longitude, adjacency[index]);
+            graphNodes[index] = new GraphNode(node.Id, node.Latitude, node.Longitude, node.IsCandidateSite, adjacency[index]);
         }
 
         return new Graph(graphNodes, edgeLengths.Count);
@@ -115,6 +120,9 @@ public static class GraphLoader
 
     private sealed class GraphDocument
     {
+        [JsonPropertyName("schemaVersion")] public required int SchemaVersion { get; init; }
+
+        [JsonPropertyName("networkType")] public required string? NetworkType { get; init; }
         [JsonPropertyName("nodes")] public required List<NodeRecord?> Nodes { get; init; }
 
         [JsonPropertyName("edges")] public required List<EdgeRecord?> Edges { get; init; }
@@ -127,6 +135,8 @@ public static class GraphLoader
         [JsonPropertyName("lat")] public required double Latitude { get; init; }
 
         [JsonPropertyName("lon")] public required double Longitude { get; init; }
+
+        [JsonPropertyName("isCandidateSite")] public required bool IsCandidateSite { get; init; }
     }
 
     private sealed class EdgeRecord

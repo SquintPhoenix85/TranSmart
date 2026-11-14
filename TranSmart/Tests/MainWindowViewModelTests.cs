@@ -24,7 +24,9 @@ public sealed class MainWindowViewModelTests
         await viewModel.InitializeAsync();
 
         Assert.NotNull(viewModel.Graph);
-        Assert.Equal(852, viewModel.TotalVertexCount);
+        Assert.Equal(viewModel.Graph.Nodes.Count, viewModel.TotalVertexCount);
+        Assert.Equal(viewModel.Graph.CandidateSiteCount, viewModel.CandidateSiteCount);
+        Assert.Equal(viewModel.Graph.CandidateSiteIds, viewModel.CandidateSiteIds);
         Assert.Equal(500, viewModel.RadiusMeters);
         Assert.True(viewModel.RunCommand.CanExecute(null));
         Assert.Empty(viewModel.ErrorMessage);
@@ -37,7 +39,10 @@ public sealed class MainWindowViewModelTests
         var firstResult = viewModel.Result;
         Assert.NotNull(firstResult);
         Assert.False(viewModel.IsBusy);
-        Assert.Equal(viewModel.TotalVertexCount, viewModel.CoveredVertexCount);
+        Assert.Equal(viewModel.TotalVertexCount, viewModel.CoveredVertexCount + viewModel.UncoveredVertexCount);
+        Assert.Equal(100.0 * viewModel.CoveredVertexCount / viewModel.TotalVertexCount, viewModel.CoveragePercentage, 8);
+        Assert.Equal(viewModel.CandidateSiteCount == 0 ? 0 : 100.0 * (viewModel.CandidateSiteCount - viewModel.SelectedSiteCount) / viewModel.CandidateSiteCount,
+            viewModel.NodeReductionPercentage, 8);
 
         viewModel.RadiusMeters = 50;
         await viewModel.RunOptimizationAsync();
@@ -48,6 +53,62 @@ public sealed class MainWindowViewModelTests
         Assert.False(viewModel.IsBusy);
         Assert.Contains(true, busyStates);
         Assert.False(busyStates[^1]);
+    }
+
+    [Theory]
+    [InlineData(true, true, false, 2, 2, 3, 0, 0)]
+    [InlineData(true, false, true, 2, 1, 2, 1, 50)]
+    [InlineData(true, false, false, 1, 1, 2, 1, 0)]
+    [InlineData(false, false, false, 0, 0, 0, 3, 0)]
+    public async Task RunOptimization_UsesEligibleSitesAndReportsIncompleteCoverage(
+        bool firstCandidate, bool secondCandidate, bool thirdCandidate,
+        int candidateCount, int selectedCount, int coveredCount, int uncoveredCount, double reduction)
+    {
+        var graphPath = Path.Combine(Path.GetTempPath(), $"eligibility-{Guid.NewGuid():N}.json");
+        try
+        {
+            await File.WriteAllTextAsync(graphPath, $$"""
+                {
+                  "schemaVersion": 2,
+                  "networkType": "walk",
+                  "nodes": [
+                    { "id": 1, "lat": 11.0, "lon": -74.8, "isCandidateSite": {{firstCandidate.ToString().ToLowerInvariant()}} },
+                    { "id": 2, "lat": 11.001, "lon": -74.801, "isCandidateSite": {{secondCandidate.ToString().ToLowerInvariant()}} },
+                    { "id": 3, "lat": 11.002, "lon": -74.802, "isCandidateSite": {{thirdCandidate.ToString().ToLowerInvariant()}} }
+                  ],
+                  "edges": [{ "source": 1, "target": 3, "length": 30 }]
+                }
+                """);
+            var viewModel = new MainWindowViewModel(graphPath);
+            await viewModel.InitializeAsync();
+            viewModel.RadiusMeters = 50;
+            await viewModel.RunOptimizationAsync();
+
+            Assert.NotNull(viewModel.Result);
+            Assert.Equal(3, viewModel.TotalVertexCount);
+            Assert.Equal(candidateCount, viewModel.CandidateSiteCount);
+            Assert.Equal(new[] { (1L, firstCandidate), (2L, secondCandidate), (3L, thirdCandidate) }
+                .Where(candidate => candidate.Item2).Select(candidate => candidate.Item1), viewModel.CandidateSiteIds);
+            Assert.All(viewModel.Result.SelectedNodeIds, id => Assert.Contains(id, viewModel.CandidateSiteIds));
+            Assert.Equal(selectedCount, viewModel.SelectedSiteCount);
+            Assert.Equal(coveredCount, viewModel.CoveredVertexCount);
+            Assert.Equal(uncoveredCount, viewModel.UncoveredVertexCount);
+            Assert.Equal(100.0 * coveredCount / 3, viewModel.CoveragePercentage, 8);
+            Assert.Equal(reduction, viewModel.NodeReductionPercentage, 8);
+            if (uncoveredCount > 0)
+            {
+                Assert.Contains("infeasible", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains(uncoveredCount.ToString(), viewModel.StatusMessage);
+            }
+            else
+            {
+                Assert.Contains("complete", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        finally
+        {
+            File.Delete(graphPath);
+        }
     }
 
     [Fact]
@@ -176,9 +237,11 @@ public sealed class MainWindowViewModelTests
     {
         private const string GraphJson = """
             {
+              "schemaVersion": 2,
+              "networkType": "walk",
               "nodes": [
-                { "id": 1, "lat": 11.0, "lon": -74.8 },
-                { "id": 2, "lat": 11.001, "lon": -74.801 }
+                { "id": 1, "lat": 11.0, "lon": -74.8, "isCandidateSite": true },
+                { "id": 2, "lat": 11.001, "lon": -74.801, "isCandidateSite": true }
               ],
               "edges": [
                 { "source": 1, "target": 2, "length": 100 }

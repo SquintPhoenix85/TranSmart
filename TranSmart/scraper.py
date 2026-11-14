@@ -23,14 +23,15 @@ def main():
     temporary_path = None
     try:
         print("Downloading the road network from OpenStreetMap...", flush=True)
-        graph = ox.graph_from_bbox(bbox=(west, south, east, north), network_type="drive", simplify=True)
+        graph = ox.graph_from_bbox(bbox=(west, south, east, north), network_type="walk", simplify=True)
 
         nodes_data = []
         for node_id, data in graph.nodes(data=True):
             nodes_data.append({
                 "id": int(node_id),
                 "lat": data["y"],
-                "lon": data["x"]
+                "lon": data["x"],
+                "isCandidateSite": len((set(graph.predecessors(node_id)) | set(graph.successors(node_id))) - {node_id}) >= 3
             })
 
         edges_data = []
@@ -38,10 +39,10 @@ def main():
             edges_data.append({
                 "source": int(source),
                 "target": int(target),
-                "length": round(data.get("length", 0), 2)
+                "length": data["length"]
             })
 
-        graph_json = {"nodes": nodes_data, "edges": edges_data}
+        graph_json = {"schemaVersion": 2, "networkType": "walk", "nodes": nodes_data, "edges": edges_data}
         output_path = os.path.abspath(args.output)
         output_directory = os.path.dirname(output_path)
         os.makedirs(output_directory, exist_ok=True)

@@ -79,6 +79,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (SetProperty(ref _graph, value))
             {
                 OnPropertyChanged(nameof(TotalVertexCount));
+                OnPropertyChanged(nameof(CandidateSiteCount));
+                OnPropertyChanged(nameof(CandidateSiteIds));
+                OnPropertyChanged(nameof(NodeReductionPercentage));
                 _runCommand.NotifyCanExecuteChanged();
             }
         }
@@ -244,6 +247,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public int TotalVertexCount => Result?.TotalNodeCount ?? Graph?.Nodes.Count ?? 0;
 
+    public IEnumerable<long> CandidateSiteIds => Graph is { } graph ? graph.CandidateSiteIds : Enumerable.Empty<long>();
+
+    public int CandidateSiteCount => Graph?.CandidateSiteCount ?? 0;
+
     public int SelectedSiteCount => Result?.SelectedNodeCount ?? 0;
 
     public int CoveredVertexCount => Result?.CoveredNodeCount ?? 0;
@@ -252,7 +259,9 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public double CoveragePercentage => Result?.CoveragePercentage ?? 0;
 
-    public double NodeReductionPercentage => Result?.NodeReductionPercentage ?? 0;
+    public double NodeReductionPercentage => Result is null || CandidateSiteCount == 0
+        ? 0
+        : (double)(CandidateSiteCount - SelectedSiteCount) / CandidateSiteCount * 100;
 
     public double OptimizationTimeMilliseconds => Result?.ElapsedMilliseconds ?? 0;
 
@@ -351,8 +360,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
         try
         {
-            Result = await Task.Run(() => CoverageOptimizer.Optimize(graph, radiusMeters));
-            StatusMessage = $"Optimization complete for a {radiusMeters:0} m walking-network radius.";
+            Result = await Task.Run(() => CoverageOptimizer.Optimize(graph, radiusMeters, graph.CandidateSiteIds));
+            StatusMessage = Result.IsFeasible
+                ? $"Optimization complete for a {radiusMeters:0} m walking-network radius."
+                : $"Coverage is infeasible at {radiusMeters:0} m: {Result.UncoveredNodeIds.Count:N0} demand vertices remain uncovered by eligible candidates.";
         }
         catch (Exception exception)
         {

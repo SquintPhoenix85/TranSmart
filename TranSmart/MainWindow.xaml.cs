@@ -151,6 +151,7 @@ public partial class MainWindow : Window
                 type = "results",
                 position = ViewModel.ReplayPosition,
                 animationsEnabled = SystemParameters.ClientAreaAnimation,
+                candidateNodeIds = ViewModel.CandidateSiteIds.Select(id => id.ToString(CultureInfo.InvariantCulture)),
                 nodes = graph.Nodes.Select(node => new
                 {
                     id = node.Id.ToString(CultureInfo.InvariantCulture),
