@@ -16,6 +16,7 @@ def main():
 
     try:
         import osmnx as ox
+        import pandas as pd
     except ImportError:
         print("OSMnx is not installed. Install it with 'python -m pip install osmnx' and try again.", file=sys.stderr)
         return 2
@@ -24,6 +25,26 @@ def main():
     try:
         print("Downloading the road network from OpenStreetMap...", flush=True)
         graph = ox.graph_from_bbox(bbox=(west, south, east, north), network_type="walk", simplify=True)
+
+        print("Downloading ATMs from OpenStreetMap...", flush=True)
+        atm_features = ox.features_from_bbox(bbox=(west, south, east, north), tags={"amenity": "atm"})
+        atms_data = []
+        for osm_id, row in atm_features.iterrows():
+            geometry = row.geometry
+            if geometry is None or geometry.is_empty:
+                continue
+            point = geometry if geometry.geom_type == "Point" else geometry.representative_point()
+            name = row.get("name")
+            if pd.isna(name) or not str(name).strip() or str(name).strip().casefold() in {"nan", "none", "null", "<na>"}:
+                name = "Cajero automático sin nombre"
+            else:
+                name = str(name).strip()
+            atms_data.append({
+                "id": str(osm_id),
+                "name": name,
+                "lat": float(point.y),
+                "lon": float(point.x),
+            })
 
         nodes_data = []
         for node_id, data in graph.nodes(data=True):
@@ -42,11 +63,11 @@ def main():
                 "length": data["length"]
             })
 
-        graph_json = {"schemaVersion": 2, "networkType": "walk", "nodes": nodes_data, "edges": edges_data}
+        graph_json = {"schemaVersion": 2, "networkType": "walk", "nodes": nodes_data, "edges": edges_data, "atms": atms_data}
         output_path = os.path.abspath(args.output)
         output_directory = os.path.dirname(output_path)
         os.makedirs(output_directory, exist_ok=True)
-        print(f"Writing {len(nodes_data)} vertices and {len(edges_data)} edges...", flush=True)
+        print(f"Writing {len(nodes_data)} vertices, {len(edges_data)} edges, and {len(atms_data)} ATMs...", flush=True)
 
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", dir=output_directory, delete=False

@@ -38,43 +38,65 @@
                 Padding="16"
                 Margin="0,0,0,14">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,18,0">
-                    <TextBlock Text="Radio de caminata" FontWeight="SemiBold" />
-                    <TextBlock Text="Distancia del camino más corto: 50 - 500 m"
-                               Foreground="{DynamicResource DashboardMutedForegroundBrush}"
-                               FontSize="12" />
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <RadioButton Content="Optimizar cobertura"
+                                 GroupName="MainMode"
+                                 IsChecked="{Binding IsCoverageMode, Mode=OneWay}"
+                                 Command="{Binding SelectCoverageModeCommand}"
+                                 Padding="12,8"
+                                 Margin="0,0,12,0"
+                                 FontWeight="SemiBold" />
+                    <RadioButton Content="Buscar cajeros"
+                                 GroupName="MainMode"
+                                 IsChecked="{Binding IsAtmMode, Mode=OneWay}"
+                                 Command="{Binding SelectAtmModeCommand}"
+                                 Padding="12,8"
+                                 FontWeight="SemiBold" />
                 </StackPanel>
 
-                <Slider Grid.Column="1"
-                        Minimum="50"
-                        Maximum="500"
-                        TickFrequency="50"
-                        IsSnapToTickEnabled="True"
-                        IsEnabled="{Binding CanChangeRadius}"
-                        Value="{Binding RadiusMeters, UpdateSourceTrigger=PropertyChanged}"
-                        VerticalAlignment="Center"
-                        Margin="0,0,18,0" />
+                <Grid Grid.Row="1" Visibility="{Binding IsCoverageMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,18,0">
+                        <TextBlock Text="Radio de caminata" FontWeight="SemiBold" />
+                        <TextBlock Text="Distancia de caminata: 50 - 500 m"
+                                   Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                                   FontSize="12" />
+                    </StackPanel>
+                    <Slider Grid.Column="1" Minimum="50" Maximum="500" TickFrequency="50"
+                            IsSnapToTickEnabled="True" IsEnabled="{Binding CanChangeRadius}"
+                            Value="{Binding RadiusMeters, UpdateSourceTrigger=PropertyChanged}"
+                            VerticalAlignment="Center" Margin="0,0,18,0" />
+                    <TextBlock Grid.Column="2" Text="{Binding RadiusMeters, StringFormat={}{0:0} m}"
+                               VerticalAlignment="Center" FontSize="17" FontWeight="SemiBold"
+                               MinWidth="72" Margin="0,0,18,0" />
+                    <Button Grid.Column="3" Content="Ejecutar optimización" Command="{Binding RunCommand}"
+                            Padding="16,9" FontWeight="SemiBold" />
+                </Grid>
 
-                <TextBlock Grid.Column="2"
-                           Text="{Binding RadiusMeters, StringFormat={}{0:0} m}"
-                           VerticalAlignment="Center"
-                           FontSize="17"
-                           FontWeight="SemiBold"
-                           MinWidth="72"
-                           Margin="0,0,18,0" />
-
-                <Button Grid.Column="3"
-                        Content="Run optimization"
-                        Command="{Binding RunCommand}"
-                        Padding="16,9"
-                        FontWeight="SemiBold" />
+                <Grid Grid.Row="1" Visibility="{Binding IsAtmMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding AtmPanelMessage}" VerticalAlignment="Center"
+                               TextWrapping="Wrap" Margin="0,0,14,0" />
+                    <Button Grid.Column="1" Content="Elegir punto en el mapa"
+                            Command="{Binding SearchAtmsCommand}" Padding="14,9"
+                            FontWeight="SemiBold" Margin="0,0,8,0" />
+                    <Button Grid.Column="2" Content="Actualizar datos OSM"
+                            Command="{Binding GenerateGraphCommand}" Padding="14,9"
+                            FontWeight="SemiBold" />
+                </Grid>
             </Grid>
         </Border>
 
@@ -104,7 +126,8 @@
             </Grid>
         </Border>
 
-        <UniformGrid Grid.Row="3" Columns="8" Margin="0,0,0,14">
+        <UniformGrid Grid.Row="3" Columns="8" Margin="0,0,0,14"
+                     Visibility="{Binding IsCoverageMode, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
                     <TextBlock Text="Nodos de demanda" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
@@ -166,13 +189,14 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <TextBlock Text="Mapa de cubrimiento" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,8" />
+                <TextBlock Text="{Binding MapTitle}" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,8" />
                 <Border Grid.Row="1" Style="{StaticResource DashboardCardStyle}" Padding="3">
                     <wv2:WebView2 x:Name="CoverageMap" />
                 </Border>
             </Grid>
 
-            <Border Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Padding="16">
+            <Border Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Padding="16"
+                    Visibility="{Binding IsCoverageMode, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -296,6 +320,120 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource DashboardCardStyle}" Padding="16"
+                    Visibility="{Binding IsAtmMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Resultados" FontSize="19" FontWeight="SemiBold" />
+                    <TextBlock Grid.Row="1" Text="{Binding AtmPanelMessage}" TextWrapping="Wrap" Margin="0,8,0,10" />
+                    <TextBlock Grid.Row="2" Text="ORDENADOS POR DISTANCIA A PIE"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource DashboardMutedForegroundBrush}"
+                               Margin="0,0,0,8">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding NearbyAtms.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ListBox Grid.Row="3"
+                             ItemsSource="{Binding NearbyAtms}"
+                             SelectedItem="{Binding SelectedAtm, Mode=TwoWay}"
+                             SelectionMode="Single"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DashboardCardStyle}">
+                                                <Setter Property="Padding" Value="10" />
+                                                <Setter Property="Margin" Value="0,0,0,8" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Rank}" Value="1">
+                                                        <Setter Property="BorderBrush" Value="#FFFF795C" />
+                                                        <Setter Property="BorderThickness" Value="2" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}" Value="True">
+                                                        <Setter Property="BorderBrush" Value="#FF00C2FF" />
+                                                        <Setter Property="BorderThickness" Value="2" />
+                                                        <Setter Property="Background" Value="#FF233A43" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="34" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Background="#FF40334B" CornerRadius="16" Width="28" Height="28"
+                                                    VerticalAlignment="Top">
+                                                <TextBlock Text="{Binding Rank}" HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" FontWeight="Bold" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="5,0,8,0">
+                                                <TextBlock Text="{Binding Atm.Name}" FontWeight="SemiBold"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Text="Más cercano al punto seleccionado"
+                                                           FontSize="11" Foreground="#FFFFA38F">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Rank}" Value="1">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2"
+                                                       Text="{Binding WalkingDistanceMeters, StringFormat={}{0:0} m}"
+                                                       Foreground="{DynamicResource DashboardAccentBrush}"
+                                                       FontWeight="Bold" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </Grid>
             </Border>
         </Grid>
