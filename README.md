@@ -1,6 +1,7 @@
 # TranSmart — Cobertura de redes de transporte (corredor norte de Barranquilla)
 
 **Proyecto:** Matemáticas Discretas (MAT 4021), Universidad del Norte  
+**Integrantes:** Orlando Rafael Arroyo Escalante (200220002) y Mariana Serrato Mejía (200220124)
 **Objetivo:** estudiar una heurística voraz de cubrimiento de conjuntos sobre una red peatonal real de OpenStreetMap y ofrecer una aplicación de escritorio para analizar cobertura y buscar cajeros automáticos cercanos.
 
 ## Información del proyecto
@@ -113,4 +114,3 @@ La optimización, el historial de decisiones, los marcadores y los archivos loca
 
 La densidad de nodos no equivale a densidad de población. Los datos de OpenStreetMap pueden estar incompletos o desactualizados; la regla de candidatos es una aproximación basada en conexiones del grafo; el análisis no verifica el servicio de transporte, el estado de las aceras, restricciones de acceso ni seguridad. Los datos de OpenStreetMap están sujetos a sus [condiciones de derechos de autor y atribución](https://www.openstreetmap.org/copyright).
 
-Consulta el [README del proyecto en inglés](project_readme.md) para ver la descripción en inglés.
