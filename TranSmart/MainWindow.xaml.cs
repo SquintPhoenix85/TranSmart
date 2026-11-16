@@ -71,7 +71,7 @@ public partial class MainWindow : Window
             var missingAsset = requiredAssets.FirstOrDefault(path => !File.Exists(path));
             if (missingAsset is not null)
             {
-                throw new FileNotFoundException($"Required map asset was not found: {missingAsset}");
+                throw new FileNotFoundException($"No se encontró un recurso requerido del mapa: {missingAsset}");
             }
 
             await CoverageMap.EnsureCoreWebView2Async();
@@ -82,12 +82,12 @@ public partial class MainWindow : Window
                 CoreWebView2HostResourceAccessKind.Allow);
             coreWebView.WebMessageReceived += CoreWebView2_OnWebMessageReceived;
             coreWebView.Navigate("https://transmart.local/index.html");
-            ViewModel.SetMapStatus("Map is starting; OpenStreetMap basemap tiles require internet access.");
+            ViewModel.SetMapStatus("Iniciando el mapa; los mapas base de OpenStreetMap requieren conexión a internet.");
         }
         catch (Exception exception)
         {
             ViewModel.SetMapStatus(
-                $"Map unavailable. Ensure the Microsoft Edge WebView2 Runtime is installed and map assets are present. {exception.Message} Optimization remains available.");
+                $"El mapa no está disponible. Comprueba que Microsoft Edge WebView2 Runtime esté instalado y que existan los archivos del mapa. {exception.Message} La optimización sigue disponible.");
         }
     }
 
@@ -98,15 +98,15 @@ public partial class MainWindow : Window
         {
             case "ready":
                 _mapReady = true;
-                ViewModel.SetMapStatus("Interactive map ready. OpenStreetMap basemap tiles require internet access.");
+                ViewModel.SetMapStatus("El mapa interactivo está listo. Los mapas base de OpenStreetMap requieren conexión a internet.");
                 SendMapResults();
                 break;
             case "tile-error":
                 ViewModel.SetMapStatus(
-                    "OpenStreetMap tiles are unavailable. Check your internet connection; optimization still works offline.");
+                    "No se pudieron cargar los mapas de OpenStreetMap. Revisa tu conexión; la optimización sigue disponible sin conexión.");
                 break;
             case "map-error":
-                ViewModel.SetMapStatus("Map initialization failed. Optimization remains available.");
+                ViewModel.SetMapStatus("No se pudo iniciar el mapa. La optimización sigue disponible.");
                 break;
             default:
                 if (message.StartsWith("atm-search:", StringComparison.Ordinal) &&
@@ -200,7 +200,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ViewModel.SetMapStatus($"Map update failed: {exception.Message} Optimization remains available.");
+            ViewModel.SetMapStatus($"No se pudo actualizar el mapa: {exception.Message} La optimización sigue disponible.");
         }
     }
 
@@ -223,7 +223,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            ViewModel.SetMapStatus($"Map replay update failed: {exception.Message} Optimization remains available.");
+            ViewModel.SetMapStatus($"No se pudo actualizar la reproducción del mapa: {exception.Message} La optimización sigue disponible.");
         }
     }
 

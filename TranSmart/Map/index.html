@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Transit coverage map</title>
+    <title>Mapa de cobertura del transporte</title>
     <link rel="stylesheet" href="leaflet/leaflet.css">
     <style>
         html, body, #map {
@@ -92,8 +92,8 @@
     </style>
 </head>
 <body>
-    <div id="map" aria-label="Animated replay of graph coverage decisions"></div>
-    <div class="legend" aria-label="Map legend">
+    <div id="map" aria-label="Reproducción animada de las decisiones de cobertura del grafo"></div>
+    <div class="legend" aria-label="Leyenda del mapa">
         <div class="legend-item coverage-legend"><span class="legend-dot selected-dot"></span>Sitio seleccionado</div>
         <div class="legend-item coverage-legend"><span class="legend-dot newly-covered-dot"></span>Cubierto en este paso</div>
         <div class="legend-item coverage-legend"><span class="legend-dot covered-dot"></span>Cubierto anteriormente</div>
@@ -105,7 +105,7 @@
         <div class="legend-item atm-legend"><span class="legend-dot selected-atm-dot"></span>Cajero seleccionado</div>
         <div class="legend-item atm-legend"><span class="legend-dot origin-dot"></span>Punto de partida</div>
     </div>
-    <div id="tile-status" class="tile-status" role="status">Loading OpenStreetMap tiles...</div>
+    <div id="tile-status" class="tile-status" role="status">Cargando el mapa base de OpenStreetMap...</div>
 
     <script src="leaflet/leaflet.js"></script>
     <script>
@@ -146,20 +146,20 @@
                 tiles.on("tileload", () => {
                     tileResponseReceived = true;
                     if (!tileErrorReceived) {
-                        setTileStatus("OpenStreetMap basemap loaded.");
+                        setTileStatus("Mapa base de OpenStreetMap cargado.");
                     }
                 });
                 tiles.on("tileerror", () => {
                     tileResponseReceived = true;
                     tileErrorReceived = true;
-                    const message = "OpenStreetMap tiles are unavailable. Check your internet connection; optimization and replay still work offline.";
+                    const message = "No se pudieron cargar los mapas de OpenStreetMap. Revisa tu conexión; la optimización y la reproducción siguen disponibles sin conexión.";
                     setTileStatus(message);
                     postStatus("tile-error");
                 });
 
                 window.setTimeout(() => {
                     if (!tileResponseReceived) {
-                        const message = "No OpenStreetMap tiles received. Check your internet connection; optimization and replay still work offline.";
+                        const message = "No se recibieron mapas de OpenStreetMap. Revisa tu conexión; la optimización y la reproducción siguen disponibles sin conexión.";
                         setTileStatus(message);
                         postStatus("tile-error");
                     }
@@ -192,9 +192,9 @@
                             fillOpacity: selected || newlyCovered ? 0.98 : covered ? 0.82 : 0.58
                         });
 
-                        const label = currentSite ? "Selected in this step" : selected ? "Selected site" :
-                            newlyCovered ? "Newly covered in this step" : covered ? "Covered vertex" : "Not covered yet";
-                        entry.title.textContent = `${label} · ${candidate ? "Eligible candidate" : "Demand node only"}`;
+                        const label = currentSite ? "Seleccionado en este paso" : selected ? "Ubicación seleccionada" :
+                            newlyCovered ? "Cubierto en este paso" : covered ? "Vértice cubierto" : "Aún sin cubrir";
+                        entry.title.textContent = `${label} · ${candidate ? "Candidato elegible" : "Solo nodo de demanda"}`;
 
                         const element = entry.marker.getElement();
                         if (element) {
@@ -245,8 +245,8 @@
                         const popup = document.createElement("div");
                         const title = document.createElement("strong");
                         const nodeId = document.createElement("div");
-                        title.textContent = "Not covered yet";
-                        nodeId.textContent = `Node ID: ${point.id}`;
+                        title.textContent = "Aún sin cubrir";
+                        nodeId.textContent = `Identificador del nodo: ${point.id}`;
                         popup.append(title, nodeId);
 
                         const marker = L.circleMarker([point.lat, point.lon], {

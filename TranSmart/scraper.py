@@ -10,8 +10,8 @@ west, south, east, north = -74.835, 10.995, -74.810, 11.025
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate the Barranquilla road graph JSON.")
-    parser.add_argument("--output", default="amb_graph.json", help="Output path for the generated graph JSON.")
+    parser = argparse.ArgumentParser(description="Genera el archivo JSON del grafo vial de Barranquilla.")
+    parser.add_argument("--output", default="amb_graph.json", help="Ruta de salida del archivo JSON del grafo.")
     args = parser.parse_args()
 
     try:

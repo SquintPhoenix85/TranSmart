@@ -31,8 +31,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _replayPosition;
     private Graph? _graph;
     private CoverageResult? _result;
-    private string _statusMessage = "Loading the supplied road graph...";
-    private string _mapStatusMessage = "Map is initializing...";
+    private string _statusMessage = "Cargando el grafo de calles disponible...";
+    private string _mapStatusMessage = "El mapa se está iniciando...";
     private string _errorMessage = string.Empty;
     private bool _isAtmSearchMode;
     private bool _isAtmMode;
@@ -322,14 +322,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public CoverageStep? CurrentReplayStep => ReplayPosition == 0 ? null : Result?.Steps[ReplayPosition - 1];
 
     public string ReplayStepSummary => Result is null
-        ? "Run an optimization to record the greedy decisions."
+        ? "Ejecuta una optimización para registrar las decisiones del algoritmo voraz."
         : CurrentReplayStep is { } step
-            ? $"Step {step.StepNumber} of {ReplayStepCount}: site {step.SelectedNodeId} adds {step.Gain:N0} new vertices."
+            ? $"Paso {step.StepNumber} de {ReplayStepCount}: la ubicación {step.SelectedNodeId} añade {step.Gain:N0} vértices nuevos."
             : ReplayStepCount == 0
-                ? "This result has no decisions to replay."
-                : "Ready to replay. Start from the baseline or choose a decision below.";
+                ? "Este resultado no tiene decisiones para reproducir."
+                : "Listo para reproducir. Inicia desde el comienzo o elige una decisión de la lista.";
 
-    public string PlaybackButtonText => IsPlaying ? "Pause" : "Play";
+    public string PlaybackButtonText => IsPlaying ? "Pausar" : "Reproducir";
 
     public string SolvedRadiusText => Result is null ? "—" : $"{Result.RadiusMeters:0} m";
 
@@ -433,7 +433,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _initializationStarted = true;
         IsBusy = true;
         ErrorMessage = string.Empty;
-        StatusMessage = "Loading the supplied road graph...";
+        StatusMessage = "Cargando el grafo de calles disponible...";
 
         try
         {
@@ -446,13 +446,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var graph = await Task.Run(() => GraphLoader.Load(_graphPath));
             Graph = graph;
             IsGraphMissing = false;
-            StatusMessage = $"Graph loaded: {graph.Nodes.Count:N0} vertices and {graph.Atms.Count:N0} OpenStreetMap ATMs are ready.";
+            StatusMessage = $"Grafo cargado: {graph.Nodes.Count:N0} vértices y {graph.Atms.Count:N0} cajeros de OpenStreetMap disponibles.";
         }
         catch (Exception exception)
         {
             IsGraphMissing = true;
             ErrorMessage = exception.Message;
-            StatusMessage = "Graph loading failed. Check the input file and try again.";
+            StatusMessage = "No se pudo cargar el grafo. Revisa el archivo de entrada e inténtalo de nuevo.";
         }
         finally
         {
@@ -478,7 +478,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var graph = await Task.Run(() => GraphLoader.Load(_graphPath));
             Graph = graph;
             IsGraphMissing = false;
-            StatusMessage = $"Graph updated: {graph.Nodes.Count:N0} vertices and {graph.Atms.Count:N0} OpenStreetMap ATMs are ready.";
+            StatusMessage = $"Grafo actualizado: {graph.Nodes.Count:N0} vértices y {graph.Atms.Count:N0} cajeros de OpenStreetMap disponibles.";
         }
         catch (Exception exception)
         {
@@ -503,19 +503,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var radiusMeters = RadiusMeters;
         IsBusy = true;
         ErrorMessage = string.Empty;
-        StatusMessage = $"Optimizing graph coverage within {radiusMeters:0} m...";
+        StatusMessage = $"Optimizando la cobertura del grafo en un radio de {radiusMeters:0} m...";
 
         try
         {
             Result = await Task.Run(() => CoverageOptimizer.Optimize(graph, radiusMeters, graph.CandidateSiteIds));
             StatusMessage = Result.IsFeasible
-                ? $"Optimization complete for a {radiusMeters:0} m walking-network radius."
-                : $"Coverage is infeasible at {radiusMeters:0} m: {Result.UncoveredNodeIds.Count:N0} demand vertices remain uncovered by eligible candidates.";
+                ? $"Optimización completada para un radio peatonal de {radiusMeters:0} m."
+                : $"No es posible cubrir todos los nodos con un radio de {radiusMeters:0} m: quedan {Result.UncoveredNodeIds.Count:N0} nodos de demanda fuera del alcance de las ubicaciones candidatas.";
         }
         catch (Exception exception)
         {
             ErrorMessage = exception.Message;
-            StatusMessage = "Optimization failed. Adjust the radius or check the graph input.";
+            StatusMessage = "No se pudo optimizar. Ajusta el radio o revisa el grafo de entrada.";
         }
         finally
         {

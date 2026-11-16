@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
-        Title="Transit Coverage · Greedy Set Cover"
+        Title="Cobertura de tránsito · Cobertura voraz de conjuntos"
         Height="900"
         Width="1440"
         MinHeight="700"
@@ -25,12 +25,12 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Estudio de Cubrimiento de Redes de Tránsito Masivo"
+            <TextBlock Text="Estudio de cobertura de redes de transporte público"
                        FontSize="27"
                        FontWeight="Bold" />
             <TextBlock Margin="0,5,0,0"
                        Foreground="{DynamicResource DashboardMutedForegroundBrush}"
-                       Text="Exploremos como podemos recorrer el problema de cubrimiento de conjuntos por métodos heurísticos." />
+                       Text="Explora cómo resolver el problema de cobertura de conjuntos mediante métodos heurísticos." />
         </StackPanel>
 
         <Border Grid.Row="1"
@@ -118,7 +118,7 @@
                                Margin="0,3,0,0" />
                 </StackPanel>
                 <Button Grid.Column="1"
-                        Content="Generate graph"
+                        Content="Generar grafo"
                         Command="{Binding GenerateGraphCommand}"
                         Padding="16,9"
                         FontWeight="SemiBold"
@@ -154,7 +154,7 @@
             </Border>
             <Border Style="{StaticResource DashboardCardStyle}" Padding="12" Margin="0,0,8,0">
                 <StackPanel>
-                    <TextBlock Text="Cubrimiento" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Cobertura" Foreground="{DynamicResource DashboardMutedForegroundBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding CoveragePercentage, StringFormat={}{0:0.0}%}" FontSize="21" FontWeight="Bold" />
                 </StackPanel>
             </Border>
@@ -224,7 +224,7 @@
 
                     <StackPanel Grid.Row="2" Margin="0,0,0,8">
                         <DockPanel LastChildFill="False" Margin="0,0,0,5">
-                            <TextBlock Text="Replay coverage" FontWeight="SemiBold" />
+                            <TextBlock Text="Cobertura durante la reproducción" FontWeight="SemiBold" />
                             <TextBlock DockPanel.Dock="Right"
                                        Text="{Binding ReplayCoveragePercentage, StringFormat={}{0:0.0}%}"
                                        Foreground="{DynamicResource DashboardAccentBrush}"
@@ -237,9 +237,9 @@
                                      Foreground="{DynamicResource DashboardAccentBrush}" />
                         <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                             <TextBlock Text="{Binding ReplayCoveredVertexCount, StringFormat={}{0:N0}}" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
-                            <TextBlock Text=" vertices covered · " FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                            <TextBlock Text=" vértices cubiertos · " FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
                             <TextBlock Text="{Binding ReplaySelectedSiteCount, StringFormat={}{0:N0}}" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
-                            <TextBlock Text=" sites selected" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                            <TextBlock Text=" ubicaciones seleccionadas" FontSize="12" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
                         </StackPanel>
                     </StackPanel>
 
@@ -255,15 +255,15 @@
                             Margin="0,0,0,8" />
 
                     <UniformGrid Grid.Row="4" Columns="5" Margin="0,0,0,12">
-                        <Button Content="Start" Command="{Binding GoToStartCommand}" Margin="0,0,5,0" Padding="5,7" />
-                        <Button Content="Previous" Command="{Binding PreviousStepCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="Inicio" Command="{Binding GoToStartCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="Anterior" Command="{Binding PreviousStepCommand}" Margin="0,0,5,0" Padding="5,7" />
                         <Button Content="{Binding PlaybackButtonText}" Command="{Binding PlayPauseCommand}" Margin="0,0,5,0" Padding="5,7" />
-                        <Button Content="Next" Command="{Binding NextStepCommand}" Margin="0,0,5,0" Padding="5,7" />
-                        <Button Content="End" Command="{Binding GoToEndCommand}" Padding="5,7" />
+                        <Button Content="Siguiente" Command="{Binding NextStepCommand}" Margin="0,0,5,0" Padding="5,7" />
+                        <Button Content="Final" Command="{Binding GoToEndCommand}" Padding="5,7" />
                     </UniformGrid>
 
                     <TextBlock Grid.Row="5"
-                               Text="Greedy decisions"
+                               Text="Decisiones del algoritmo voraz"
                                FontSize="14"
                                FontWeight="SemiBold"
                                Margin="0,0,0,5" />
@@ -295,11 +295,11 @@
                                                            VerticalAlignment="Center"
                                                            Margin="0,0,10,0" />
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="Selected site" FontSize="11" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
+                                                    <TextBlock Text="Ubicación seleccionada" FontSize="11" Foreground="{DynamicResource DashboardMutedForegroundBrush}" />
                                                     <TextBlock Text="{Binding SelectedNodeId, StringFormat={}{0:N0}}" FontWeight="SemiBold" />
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="2" HorizontalAlignment="Right">
-                                                    <TextBlock Text="GAIN" FontSize="10" Foreground="{DynamicResource DashboardMutedForegroundBrush}" HorizontalAlignment="Right" />
+                                                    <TextBlock Text="APORTE" FontSize="10" Foreground="{DynamicResource DashboardMutedForegroundBrush}" HorizontalAlignment="Right" />
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                                         <TextBlock Text="+" FontWeight="SemiBold" />
                                                         <TextBlock Text="{Binding Gain}" FontWeight="SemiBold" />
@@ -309,7 +309,7 @@
                                                     <TextBlock Text="{Binding CoveredVertexCount, StringFormat={}{0:N0}}"
                                                                Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                                                                FontSize="11" />
-                                                    <TextBlock Text=" vertices covered after this choice"
+                                                    <TextBlock Text=" vértices cubiertos después de esta elección"
                                                                Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                                                                FontSize="11" />
                                                 </StackPanel>
@@ -450,7 +450,7 @@
             <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding ErrorMessage}" Foreground="#FFFF9B9B" TextWrapping="Wrap" />
             <TextBlock Margin="0,5,0,0"
-                       Text="Greedy set cover is a heuristic, not a proof of minimum size. Coverage is measured over all demand nodes; reduction is measured over eligible candidates. Sites are not verified transit stops or pedestrian access points."
+                       Text="La cobertura voraz de conjuntos es una heurística, no garantiza el mínimo. La cobertura se mide sobre todos los nodos de demanda y la reducción, sobre las ubicaciones candidatas elegibles. Las ubicaciones no están verificadas como paraderos ni como accesos peatonales."
                        Foreground="{DynamicResource DashboardMutedForegroundBrush}"
                        FontSize="11"
                        TextWrapping="Wrap" />
