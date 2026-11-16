@@ -39,11 +39,12 @@ El porcentaje de cubrimiento es el número de vértices de demanda cubiertos div
 
 ### Para ejecutar la aplicación
 
-- Windows compatible con WPF y **.NET 10 Desktop Runtime**.
+- Windows 11.
+- **.NET 10 Desktop Runtime** si descargas la versión dependiente de .NET. La versión *self-contained* incluye el runtime de .NET y no requiere instalarlo por separado.
 - **Microsoft Edge WebView2 Runtime** para mostrar el mapa interactivo integrado. Si WebView2 no está disponible, aún se puede ejecutar la optimización, pero el mapa no se iniciará.
 - La conexión a internet es opcional para optimizar con el grafo incluido. Se necesita para cargar los mosaicos del mapa base de OpenStreetMap.
 
-### Para compilar el proyecto
+### Para compilar el proyecto (opcional)
 
 - **.NET 10 SDK** en Windows.
 - Puede requerirse internet durante la primera compilación para restaurar el paquete NuGet `Microsoft.Web.WebView2`.
@@ -63,15 +64,24 @@ Si el comando `py` no está disponible, usa `python -m pip install osmnx pandas`
 
 No hace falta Python para usar el grafo incluido en el análisis de cubrimiento.
 
-## Iniciar la aplicación
+## Descargar e iniciar la aplicación
 
-Desde la carpeta principal del repositorio, ejecuta:
+Descarga la versión más reciente desde [Releases de TranSmart](https://github.com/SquintPhoenix85/TranSmart/releases). Los paquetes publicados  aparecen como archivos descargables (**Assets**) en la página de cada release. Para usar la aplicación basta con descargar uno de esos paquetes; no hace falta clonar ni compilar el código fuente.
+
+Hay dos opciones:
+
+- **Self-contained:** incluye el runtime de .NET necesario para ejecutar la aplicación. Es la opción adecuada si no tienes instalado .NET 10 Desktop Runtime.
+- **Dependiente de .NET:** requiere que **.NET 10 Desktop Runtime** esté instalado en Windows. Esta opción suele ocupar menos espacio.
+
+Descarga el paquete elegido, descomprímelo en una carpeta y ejecuta `TranSmart.exe`. Para mostrar el mapa integrado, el equipo también debe tener instalado **Microsoft Edge WebView2 Runtime**.
+
+En el primer inicio, la aplicación copia el grafo incluido a `%LOCALAPPDATA%\TranSmart\amb_graph.json` si todavía no existe allí. En los siguientes inicios usa esa copia. Si el archivo falta o no se puede cargar, selecciona **Generate graph** cuando aparezca esa opción. La aplicación descargará una nueva red y los datos de cajeros y luego los cargará automáticamente.
+
+Para trabajar en el código o compilar desde el repositorio, instala el SDK indicado en los requisitos y ejecuta desde la carpeta principal:
 
 ```powershell
 dotnet run --project TranSmart/TranSmart.csproj
 ```
-
-En el primer inicio, la aplicación copia `TranSmart/amb_graph.json` a `%LOCALAPPDATA%\TranSmart\amb_graph.json` si todavía no existe allí. En los siguientes inicios usa la copia de datos de la aplicación. Si el archivo falta o no se puede cargar, selecciona **Generate graph** cuando aparezca esa opción. La aplicación descargará una nueva red y los datos de cajeros y luego los cargará automáticamente.
 
 ## Instrucciones de uso
 
