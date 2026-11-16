@@ -8,7 +8,7 @@ public sealed class Graph
     private readonly ReadOnlyCollection<long> _candidateSiteIds;
     private readonly Dictionary<long, int> _nodeIndices;
 
-    internal Graph(IReadOnlyList<GraphNode> nodes, int edgeCount)
+    internal Graph(IReadOnlyList<GraphNode> nodes, IReadOnlyList<AtmLocation> atms, int edgeCount)
     {
         _nodes = Array.AsReadOnly(nodes.ToArray());
         _candidateSiteIds = Array.AsReadOnly(_nodes.Where(node => node.IsCandidateSite).Select(node => node.Id).ToArray());
@@ -20,6 +20,7 @@ public sealed class Graph
         }
 
         EdgeCount = edgeCount;
+        Atms = Array.AsReadOnly(atms.ToArray());
     }
 
     public IReadOnlyList<GraphNode> Nodes => _nodes;
@@ -30,8 +31,12 @@ public sealed class Graph
 
     public int EdgeCount { get; }
 
+    public IReadOnlyList<AtmLocation> Atms { get; }
+
     public bool TryGetNodeIndex(long nodeId, out int index) => _nodeIndices.TryGetValue(nodeId, out index);
 }
+
+public sealed record AtmLocation(string Id, string Name, double Latitude, double Longitude);
 
 public sealed class GraphNode
 {

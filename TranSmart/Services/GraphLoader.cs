@@ -115,7 +115,30 @@ public static class GraphLoader
             graphNodes[index] = new GraphNode(node.Id, node.Latitude, node.Longitude, node.IsCandidateSite, adjacency[index]);
         }
 
-        return new Graph(graphNodes, edgeLengths.Count);
+        var atms = (document.Atms ?? []).Select((atm, index) => atm ??
+            throw new InvalidDataException($"Graph file '{path}' contains a null ATM at index {index}.")).ToArray();
+        if (atms.Any(atm => !double.IsFinite(atm.Latitude) || !double.IsFinite(atm.Longitude)))
+        {
+            throw new InvalidDataException($"Graph file '{path}' contains an ATM with invalid coordinates.");
+        }
+
+        return new Graph(graphNodes, atms.Select(atm => new AtmLocation(
+            atm.Id,
+            NormalizeAtmName(atm.Name),
+            atm.Latitude,
+            atm.Longitude)).ToArray(), edgeLengths.Count);
+    }
+
+    private static string NormalizeAtmName(string? name)
+    {
+        var normalized = name?.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ||
+               normalized.Equals("nan", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("null", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("<na>", StringComparison.OrdinalIgnoreCase)
+            ? "Cajero automático sin nombre"
+            : normalized;
     }
 
     private sealed class GraphDocument
@@ -126,6 +149,16 @@ public static class GraphLoader
         [JsonPropertyName("nodes")] public required List<NodeRecord?> Nodes { get; init; }
 
         [JsonPropertyName("edges")] public required List<EdgeRecord?> Edges { get; init; }
+
+        [JsonPropertyName("atms")] public List<AtmRecord?>? Atms { get; init; }
+    }
+
+    private sealed class AtmRecord
+    {
+        [JsonPropertyName("id")] public required string Id { get; init; }
+        [JsonPropertyName("name")] public string? Name { get; init; }
+        [JsonPropertyName("lat")] public required double Latitude { get; init; }
+        [JsonPropertyName("lon")] public required double Longitude { get; init; }
     }
 
     private sealed class NodeRecord

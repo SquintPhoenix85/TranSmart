@@ -10,8 +10,12 @@ namespace TranSmart.ViewModels;
 public sealed class MainWindowViewModel : INotifyPropertyChanged
 {
     private readonly string _graphPath;
+    private readonly string? _bundledGraphPath;
     private readonly IGraphGenerator _graphGenerator;
     private readonly RelayCommand _runCommand;
+    private readonly RelayCommand _searchAtmsCommand;
+    private readonly RelayCommand _selectCoverageModeCommand;
+    private readonly RelayCommand _selectAtmModeCommand;
     private readonly RelayCommand _generateGraphCommand;
     private readonly RelayCommand _previousStepCommand;
     private readonly RelayCommand _nextStepCommand;
@@ -27,15 +31,34 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private int _replayPosition;
     private Graph? _graph;
     private CoverageResult? _result;
-    private string _statusMessage = "Loading the supplied road graph...";
-    private string _mapStatusMessage = "Map is initializing...";
+    private string _statusMessage = "Cargando el grafo de calles disponible...";
+    private string _mapStatusMessage = "El mapa se está iniciando...";
     private string _errorMessage = string.Empty;
+    private bool _isAtmSearchMode;
+    private bool _isAtmMode;
+    private IReadOnlyList<NearbyAtm> _nearbyAtms = [];
+    private NearbyAtm? _selectedAtm;
+    private (double Latitude, double Longitude)? _searchOrigin;
 
     public MainWindowViewModel(string? graphPath = null, IGraphGenerator? graphGenerator = null)
     {
-        _graphPath = graphPath ?? Path.Combine(AppContext.BaseDirectory, "amb_graph.json");
+        if (graphPath is null)
+        {
+            _graphPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TranSmart",
+                "amb_graph.json");
+            _bundledGraphPath = Path.Combine(AppContext.BaseDirectory, "amb_graph.json");
+        }
+        else
+        {
+            _graphPath = graphPath;
+        }
         _graphGenerator = graphGenerator ?? new PythonScraperGraphGenerator();
         _runCommand = new RelayCommand(_ => StartOptimization(), _ => CanRunOptimization());
+        _searchAtmsCommand = new RelayCommand(_ => ActivateAtmSearch(), _ => IsAtmMode && Graph is { Atms.Count: > 0 } && !IsBusy);
+        _selectCoverageModeCommand = new RelayCommand(_ => SelectMode(false), _ => !IsBusy);
+        _selectAtmModeCommand = new RelayCommand(_ => SelectMode(true), _ => !IsBusy);
         _generateGraphCommand = new RelayCommand(_ => StartGraphGeneration(), _ => CanGenerateGraph);
         _previousStepCommand = new RelayCommand(_ => ChangeReplayPosition(ReplayPosition - 1), _ => CanReplay && ReplayPosition > 0);
         _nextStepCommand = new RelayCommand(_ => ChangeReplayPosition(ReplayPosition + 1), _ => CanReplay && ReplayPosition < ReplayStepCount);
@@ -56,6 +79,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ICommand RunCommand => _runCommand;
+
+    public ICommand SearchAtmsCommand => _searchAtmsCommand;
+
+    public ICommand SelectCoverageModeCommand => _selectCoverageModeCommand;
+
+    public ICommand SelectAtmModeCommand => _selectAtmModeCommand;
 
     public ICommand GenerateGraphCommand => _generateGraphCommand;
 
@@ -81,8 +110,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(TotalVertexCount));
                 OnPropertyChanged(nameof(CandidateSiteCount));
                 OnPropertyChanged(nameof(CandidateSiteIds));
+                OnPropertyChanged(nameof(AtmPanelMessage));
                 OnPropertyChanged(nameof(NodeReductionPercentage));
                 _runCommand.NotifyCanExecuteChanged();
+                _searchAtmsCommand.NotifyCanExecuteChanged();
+                _selectCoverageModeCommand.NotifyCanExecuteChanged();
+                _selectAtmModeCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -154,7 +187,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanReplay));
                 OnPropertyChanged(nameof(CanGenerateGraph));
                 _runCommand.NotifyCanExecuteChanged();
+                _searchAtmsCommand.NotifyCanExecuteChanged();
                 _generateGraphCommand.NotifyCanExecuteChanged();
+                _selectCoverageModeCommand.NotifyCanExecuteChanged();
+                _selectAtmModeCommand.NotifyCanExecuteChanged();
                 NotifyReplayCommands();
             }
         }
@@ -203,9 +239,61 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         private set => SetProperty(ref _errorMessage, value);
     }
 
+    public bool IsAtmSearchMode
+    {
+        get => _isAtmSearchMode;
+        private set => SetProperty(ref _isAtmSearchMode, value);
+    }
+
+    public bool IsAtmMode
+    {
+        get => _isAtmMode;
+        private set
+        {
+            if (SetProperty(ref _isAtmMode, value))
+            {
+                OnPropertyChanged(nameof(IsCoverageMode));
+                OnPropertyChanged(nameof(MapTitle));
+                OnPropertyChanged(nameof(AtmPanelMessage));
+                _searchAtmsCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool IsCoverageMode => !IsAtmMode;
+
+    public string MapTitle => IsAtmMode ? "Mapa de cajeros automáticos" : "Mapa de cubrimiento";
+
+    public string AtmPanelMessage => IsAtmSearchMode
+        ? "Haz clic en el mapa para elegir el punto de partida."
+        : NearbyAtms.Count > 0
+            ? "Selecciona un cajero de la lista para centrarlo y resaltarlo en el mapa."
+            : Graph is null
+                ? "Carga o actualiza los datos de OpenStreetMap para buscar cajeros."
+                : Graph.Atms.Count == 0
+                    ? "El grafo cargado no contiene cajeros. Pulsa “Actualizar datos OSM” para descargarlos."
+                    : $"Hay {Graph.Atms.Count:N0} cajeros registrados. Pulsa “Elegir punto en el mapa” y luego marca tu ubicación.";
+
+    public NearbyAtm? SelectedAtm
+    {
+        get => _selectedAtm;
+        set
+        {
+            if (value is not null && !_nearbyAtms.Contains(value))
+            {
+                return;
+            }
+
+            if (SetProperty(ref _selectedAtm, value) && value is not null)
+            {
+                MapStatusMessage = $"Cajero seleccionado: {value.Atm.Name}, a {value.WalkingDistanceMeters:0} m a pie.";
+            }
+        }
+    }
+
     public bool CanChangeRadius => !IsBusy;
 
-    public bool CanGenerateGraph => IsGraphMissing && !IsBusy;
+    public bool CanGenerateGraph => !IsBusy;
 
     public bool CanReplay => Result is { Steps.Count: > 0 } && !IsBusy;
 
@@ -234,14 +322,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     public CoverageStep? CurrentReplayStep => ReplayPosition == 0 ? null : Result?.Steps[ReplayPosition - 1];
 
     public string ReplayStepSummary => Result is null
-        ? "Run an optimization to record the greedy decisions."
+        ? "Ejecuta una optimización para registrar las decisiones del algoritmo voraz."
         : CurrentReplayStep is { } step
-            ? $"Step {step.StepNumber} of {ReplayStepCount}: site {step.SelectedNodeId} adds {step.Gain:N0} new vertices."
+            ? $"Paso {step.StepNumber} de {ReplayStepCount}: la ubicación {step.SelectedNodeId} añade {step.Gain:N0} vértices nuevos."
             : ReplayStepCount == 0
-                ? "This result has no decisions to replay."
-                : "Ready to replay. Start from the baseline or choose a decision below.";
+                ? "Este resultado no tiene decisiones para reproducir."
+                : "Listo para reproducir. Inicia desde el comienzo o elige una decisión de la lista.";
 
-    public string PlaybackButtonText => IsPlaying ? "Pause" : "Play";
+    public string PlaybackButtonText => IsPlaying ? "Pausar" : "Reproducir";
 
     public string SolvedRadiusText => Result is null ? "—" : $"{Result.RadiusMeters:0} m";
 
@@ -282,6 +370,59 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
 
     public void SetMapStatus(string message) => MapStatusMessage = message;
 
+    public void ActivateAtmSearch()
+    {
+        if (!IsAtmMode || Graph is null || IsBusy) return;
+        _nearbyAtms = [];
+        SelectedAtm = null;
+        _searchOrigin = null;
+        OnPropertyChanged(nameof(NearbyAtms));
+        IsAtmSearchMode = true;
+        OnPropertyChanged(nameof(AtmPanelMessage));
+        MapStatusMessage = "Modo cajeros activo: haz clic en el mapa para elegir tu punto de partida.";
+    }
+
+    public void HandleMapPoint(double latitude, double longitude)
+    {
+        if (!IsAtmSearchMode || Graph is null) return;
+        IsAtmSearchMode = false;
+        OnPropertyChanged(nameof(AtmPanelMessage));
+        _searchOrigin = (latitude, longitude);
+        try
+        {
+            _nearbyAtms = AtmFinder.FindNearest(Graph, latitude, longitude);
+            OnPropertyChanged(nameof(NearbyAtms));
+            SelectedAtm = _nearbyAtms.FirstOrDefault();
+            OnPropertyChanged(nameof(AtmPanelMessage));
+            MapStatusMessage = _nearbyAtms.Count == 0
+                ? "No hay cajeros registrados en esta zona de OpenStreetMap, o no se encontró una ruta peatonal."
+                : $"Se encontraron {_nearbyAtms.Count} cajeros cercanos, ordenados por distancia estimada caminando.";
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = exception.Message;
+            MapStatusMessage = "No se pudo calcular la búsqueda de cajeros.";
+        }
+    }
+
+    public IReadOnlyList<NearbyAtm> NearbyAtms => _nearbyAtms;
+
+    public (double Latitude, double Longitude)? SearchOrigin => _searchOrigin;
+
+    private void SelectMode(bool atmMode)
+    {
+        IsAtmMode = atmMode;
+        IsAtmSearchMode = false;
+        _nearbyAtms = [];
+        SelectedAtm = null;
+        _searchOrigin = null;
+        OnPropertyChanged(nameof(NearbyAtms));
+        OnPropertyChanged(nameof(AtmPanelMessage));
+        MapStatusMessage = atmMode
+            ? "Modo cajeros: carga datos OSM si el grafo aún no contiene cajeros."
+            : "Modo optimización de cobertura.";
+    }
+
     public async Task InitializeAsync()
     {
         if (_initializationStarted)
@@ -292,20 +433,26 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         _initializationStarted = true;
         IsBusy = true;
         ErrorMessage = string.Empty;
-        StatusMessage = "Loading the supplied road graph...";
+        StatusMessage = "Cargando el grafo de calles disponible...";
 
         try
         {
+            if (!File.Exists(_graphPath) && _bundledGraphPath is not null && File.Exists(_bundledGraphPath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_graphPath)!);
+                File.Copy(_bundledGraphPath, _graphPath);
+            }
+
             var graph = await Task.Run(() => GraphLoader.Load(_graphPath));
             Graph = graph;
             IsGraphMissing = false;
-            StatusMessage = $"Graph loaded: {graph.Nodes.Count:N0} vertices are ready for analysis.";
+            StatusMessage = $"Grafo cargado: {graph.Nodes.Count:N0} vértices y {graph.Atms.Count:N0} cajeros de OpenStreetMap disponibles.";
         }
         catch (Exception exception)
         {
             IsGraphMissing = true;
             ErrorMessage = exception.Message;
-            StatusMessage = "Graph loading failed. Check the input file and try again.";
+            StatusMessage = "No se pudo cargar el grafo. Revisa el archivo de entrada e inténtalo de nuevo.";
         }
         finally
         {
@@ -331,11 +478,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             var graph = await Task.Run(() => GraphLoader.Load(_graphPath));
             Graph = graph;
             IsGraphMissing = false;
-            StatusMessage = $"Graph generated and loaded: {graph.Nodes.Count:N0} vertices are ready for analysis.";
+            StatusMessage = $"Grafo actualizado: {graph.Nodes.Count:N0} vértices y {graph.Atms.Count:N0} cajeros de OpenStreetMap disponibles.";
         }
         catch (Exception exception)
         {
-            IsGraphMissing = true;
+            IsGraphMissing = Graph is null;
             ErrorMessage = exception.Message;
             StatusMessage = "Graph generation failed. Check Python, OSMnx, and internet access, then try again.";
         }
@@ -356,19 +503,19 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         var radiusMeters = RadiusMeters;
         IsBusy = true;
         ErrorMessage = string.Empty;
-        StatusMessage = $"Optimizing graph coverage within {radiusMeters:0} m...";
+        StatusMessage = $"Optimizando la cobertura del grafo en un radio de {radiusMeters:0} m...";
 
         try
         {
             Result = await Task.Run(() => CoverageOptimizer.Optimize(graph, radiusMeters, graph.CandidateSiteIds));
             StatusMessage = Result.IsFeasible
-                ? $"Optimization complete for a {radiusMeters:0} m walking-network radius."
-                : $"Coverage is infeasible at {radiusMeters:0} m: {Result.UncoveredNodeIds.Count:N0} demand vertices remain uncovered by eligible candidates.";
+                ? $"Optimización completada para un radio peatonal de {radiusMeters:0} m."
+                : $"No es posible cubrir todos los nodos con un radio de {radiusMeters:0} m: quedan {Result.UncoveredNodeIds.Count:N0} nodos de demanda fuera del alcance de las ubicaciones candidatas.";
         }
         catch (Exception exception)
         {
             ErrorMessage = exception.Message;
-            StatusMessage = "Optimization failed. Adjust the radius or check the graph input.";
+            StatusMessage = "No se pudo optimizar. Ajusta el radio o revisa el grafo de entrada.";
         }
         finally
         {

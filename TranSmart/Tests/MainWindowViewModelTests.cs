@@ -132,21 +132,75 @@ public sealed class MainWindowViewModelTests
         var generator = new FakeGraphGenerator();
         var viewModel = new MainWindowViewModel(graphPath, generator);
 
-        await viewModel.InitializeAsync();
-        Assert.True(viewModel.IsGraphMissing);
-        Assert.True(viewModel.CanGenerateGraph);
+        try
+        {
+            await viewModel.InitializeAsync();
+            Assert.True(viewModel.IsGraphMissing);
+            Assert.True(viewModel.CanGenerateGraph);
 
-        await viewModel.GenerateGraphAsync();
+            await viewModel.GenerateGraphAsync();
 
-        Assert.NotNull(viewModel.Graph);
-        Assert.Equal(2, viewModel.Graph.Nodes.Count);
-        Assert.False(viewModel.IsGraphMissing);
-        Assert.False(viewModel.CanGenerateGraph);
-        Assert.Empty(viewModel.ErrorMessage);
-        Assert.True(viewModel.RunCommand.CanExecute(null));
-        Assert.Equal(graphPath, generator.LastOutputPath);
+            Assert.NotNull(viewModel.Graph);
+            Assert.Equal(2, viewModel.Graph.Nodes.Count);
+            Assert.False(viewModel.IsGraphMissing);
+            Assert.True(viewModel.CanGenerateGraph);
+            Assert.True(viewModel.GenerateGraphCommand.CanExecute(null));
+            Assert.Empty(viewModel.ErrorMessage);
+            Assert.True(viewModel.RunCommand.CanExecute(null));
+            Assert.Equal(graphPath, generator.LastOutputPath);
+        }
+        finally
+        {
+            File.Delete(graphPath);
+        }
+    }
 
-        File.Delete(graphPath);
+    [Fact]
+    public async Task GenerateGraph_WhenGraphIsLoaded_CanRefreshAndDisablesGenerationWhileRunning()
+    {
+        var graphPath = Path.Combine(Path.GetTempPath(), $"refresh-{Guid.NewGuid():N}.json");
+        var generator = new FakeGraphGenerator();
+        var viewModel = new MainWindowViewModel(graphPath, generator);
+        TaskCompletionSource<bool>? generationGate = null;
+        Task? refreshTask = null;
+
+        try
+        {
+            await viewModel.InitializeAsync();
+            await viewModel.GenerateGraphAsync();
+            Assert.NotNull(viewModel.Graph);
+            Assert.False(viewModel.IsGraphMissing);
+
+            var generationStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            generationGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            generator.GenerationStarted = generationStarted;
+            generator.GenerationGate = generationGate;
+
+            refreshTask = viewModel.GenerateGraphAsync();
+            await generationStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.True(viewModel.IsBusy);
+            Assert.False(viewModel.CanGenerateGraph);
+            Assert.False(viewModel.GenerateGraphCommand.CanExecute(null));
+
+            generationGate.SetResult(true);
+            await refreshTask;
+
+            Assert.NotNull(viewModel.Graph);
+            Assert.False(viewModel.IsGraphMissing);
+            Assert.True(viewModel.CanGenerateGraph);
+            Assert.True(viewModel.GenerateGraphCommand.CanExecute(null));
+            Assert.Equal(2, generator.AttemptCount);
+        }
+        finally
+        {
+            generationGate?.TrySetResult(true);
+            if (refreshTask is not null)
+            {
+                await refreshTask;
+            }
+            File.Delete(graphPath);
+        }
     }
 
     [Fact]
@@ -162,6 +216,7 @@ public sealed class MainWindowViewModelTests
         Assert.Null(viewModel.Graph);
         Assert.True(viewModel.IsGraphMissing);
         Assert.True(viewModel.CanGenerateGraph);
+        Assert.True(viewModel.GenerateGraphCommand.CanExecute(null));
         Assert.Contains("failed", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("test generation failure", viewModel.ErrorMessage, StringComparison.OrdinalIgnoreCase);
 
@@ -255,6 +310,10 @@ public sealed class MainWindowViewModelTests
 
         public string? LastOutputPath { get; private set; }
 
+        public TaskCompletionSource<bool>? GenerationStarted { get; set; }
+
+        public TaskCompletionSource<bool>? GenerationGate { get; set; }
+
         public async Task GenerateAsync(
             string outputPath,
             IProgress<string>? progress = null,
@@ -266,6 +325,12 @@ public sealed class MainWindowViewModelTests
             {
                 FailuresRemaining--;
                 throw new InvalidOperationException("Test generation failure.");
+            }
+
+            if (GenerationGate is { } generationGate)
+            {
+                GenerationStarted?.TrySetResult(true);
+                await generationGate.Task.WaitAsync(cancellationToken);
             }
 
             progress?.Report("Test graph created.");
